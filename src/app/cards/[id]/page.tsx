@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Heart, BookmarkPlus, Share2, Star, TrendingUp, MessageSquare, ExternalLink } from "lucide-react";
 import { mockCards, mockPriceHistory, mockPosts } from "@/lib/mockData";
 import { formatPrice, timeAgo } from "@/lib/utils";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import dynamic from "next/dynamic";
+
+const PriceChart = dynamic(() => import("@/components/ui/PriceChart").then(m => m.PriceChart), { ssr: false });
 
 export default function CardDetailPage({ params }: { params: { id: string } }) {
   const card = mockCards.find((c) => c.id === params.id) ?? mockCards[0];
@@ -139,20 +141,7 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
             <TrendingUp className="w-4 h-4 text-brand-400" /> 近半年價格走勢
           </h3>
           <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockPriceHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
-                <XAxis dataKey="date" tick={{ fill: "#6b7280", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <Tooltip
-                  contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: "8px", color: "#f3f4f6" }}
-                  formatter={(value: number) => [formatPrice(value), "成交均價"]}
-                />
-                <Line type="monotone" dataKey="price" stroke="#5c6aff" strokeWidth={2.5}
-                  dot={{ fill: "#5c6aff", r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <PriceChart data={mockPriceHistory} />
           </div>
 
           <div className="mt-6 space-y-2">

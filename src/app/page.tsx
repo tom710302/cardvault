@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   TrendingUp, MessageSquare, Users, Star, ArrowRight,
@@ -26,7 +28,7 @@ export default function HomePage() {
           style={{ backgroundImage: "radial-gradient(circle at 70% 50%, #5c6aff33 0%, transparent 60%)" }} />
         <div className="relative max-w-2xl space-y-5">
           <div className="badge text-brand-300 bg-brand-900/50 border border-brand-700/50 text-sm">
-            🃏 台灣最大實體卡牌交流社群
+            🔍 台灣最大實體卡牌交流社群
           </div>
           <h1 className="text-4xl md:text-5xl font-bold leading-tight text-white">
             你的珍藏值得<br />
