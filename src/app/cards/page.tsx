@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, TrendingUp, TrendingDown, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 const games = ["全部", "MTG", "寶可夢", "遊戲王", "NBA", "MLB"];
 const sortOptions = [
@@ -28,6 +29,15 @@ export default function CardsPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+  }, []);
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
@@ -48,11 +58,109 @@ export default function CardsPage() {
     return () => clearTimeout(t);
   }, [fetchCards]);
 
+  async function submitCard(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    const res = await fetch("/api/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(addForm),
+    });
+    if (res.ok) {
+      setShowAdd(false);
+      setAddForm({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "" });
+      fetchCards();
+    } else {
+      const { error } = await res.json();
+      alert(error ?? "新增失敗");
+    }
+    setSubmitting(false);
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-1">卡牌資料庫</h1>
-        <p className="text-gray-400 text-sm">瀏覽所有實體卡牌資料，點擊查看詳情與價格</p>
+      {/* Add Card Modal */}
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">新增卡牌到資料庫</h2>
+              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={submitCard} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">卡牌名稱 *</label>
+                  <input value={addForm.name} onChange={e => setAddForm(v => ({ ...v, name: e.target.value }))} required
+                    placeholder="例如：黑蓮花"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">英文名稱</label>
+                  <input value={addForm.name_en} onChange={e => setAddForm(v => ({ ...v, name_en: e.target.value }))}
+                    placeholder="例如：Black Lotus"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">遊戲 *</label>
+                  <select value={addForm.game} onChange={e => setAddForm(v => ({ ...v, game: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                    {["MTG", "寶可夢", "遊戲王", "NBA", "MLB", "NFL", "WS", "其他"].map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">類型</label>
+                  <select value={addForm.card_type} onChange={e => setAddForm(v => ({ ...v, card_type: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                    <option value="tcg">TCG 集換式</option>
+                    <option value="sports">運動球員卡</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">系列名稱</label>
+                  <input value={addForm.set_name} onChange={e => setAddForm(v => ({ ...v, set_name: e.target.value }))}
+                    placeholder="例如：Alpha Edition"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">稀有度</label>
+                  <input value={addForm.rarity} onChange={e => setAddForm(v => ({ ...v, rarity: e.target.value }))}
+                    placeholder="例如：特稀有、Refractor"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">描述（選填）</label>
+                <textarea value={addForm.description} onChange={e => setAddForm(v => ({ ...v, description: e.target.value }))} rows={2}
+                  placeholder="簡單介紹這張卡牌..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+              <div className="flex gap-3 justify-end pt-1">
+                <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                <button type="submit" disabled={submitting}
+                  className="btn-primary text-sm px-4 py-2 disabled:opacity-50 flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> {submitting ? "新增中..." : "新增卡牌"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">卡牌資料庫</h1>
+          <p className="text-gray-400 text-sm">瀏覽所有實體卡牌資料，點擊查看詳情與價格</p>
+        </div>
+        {user && (
+          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2 shrink-0 text-sm">
+            <Plus className="w-4 h-4" /> 新增卡牌
+          </button>
+        )}
       </div>
 
       {/* Filters */}
