@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown } from "lucide-react";
+import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -35,6 +35,9 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userVote, setUserVote] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -66,6 +69,16 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
       setUserVote(action === "removed" ? 0 : value);
       setPost(p => p ? { ...p, upvotes: p.upvotes + (action === "removed" ? -value : value) } : p);
     }
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await fetch(`/api/posts/${params.id}/edit`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editTitle, content: editContent }),
+    });
+    if (res.ok) { setEditing(false); fetchPost(); }
   }
 
   async function submitComment(e: React.FormEvent) {
@@ -130,8 +143,27 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
               <span className={`badge text-xs ${typeColor[post.post_type] ?? "text-gray-400 bg-gray-800"}`}>{typeLabel[post.post_type]}</span>
               <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
             </div>
-            <h1 className="text-2xl font-bold text-white leading-snug">{post.title}</h1>
-            <div className="flex items-center gap-3 text-sm text-gray-500">
+            {editing ? (
+              <form onSubmit={saveEdit} className="space-y-3">
+                <input value={editTitle} onChange={e => setEditTitle(e.target.value)} required
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-lg font-bold text-white outline-none focus:ring-2 focus:ring-brand-500" />
+                <textarea value={editContent} onChange={e => setEditContent(e.target.value)} required rows={6}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                <div className="flex gap-2">
+                  <button type="submit" className="btn-primary text-sm px-4 py-2">儲存</button>
+                  <button type="button" onClick={() => setEditing(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                </div>
+              </form>
+            ) : (
+              <h1 className="text-2xl font-bold text-white leading-snug">{post.title}</h1>
+            )}
+            <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
+              {user?.id === post.author_id && !editing && (
+                <button onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); }}
+                  className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300">
+                  <Edit2 className="w-3 h-3" /> 編輯文章
+                </button>
+              )}
               <Link href={`/users/${post.profiles?.id}`} className="flex items-center gap-2 hover:text-gray-300 transition-colors">
                 <div className="w-7 h-7 rounded-full bg-brand-700 flex items-center justify-center text-white text-xs font-bold">
                   {post.profiles?.username?.[0]?.toUpperCase() ?? "?"}
@@ -142,9 +174,11 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
               <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
               <span>{timeAgo(new Date(post.created_at))}</span>
             </div>
-            <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{post.content}</p>
-            </div>
+            {!editing && (
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

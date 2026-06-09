@@ -26,18 +26,36 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  async function fetchNotifications() {
+    const res = await fetch("/api/notifications");
+    if (res.ok) {
+      const { notifications } = await res.json();
+      setNotifications(notifications ?? []);
+      setUnreadCount(notifications?.filter((n: any) => !n.is_read).length ?? 0);
+    }
+  }
+
+  async function markAllRead() {
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  }
 
   async function handleSearch(q: string) {
     setSearchQuery(q);
@@ -52,6 +70,7 @@ export function Navbar() {
       if (user) {
         supabase.from("profiles").select("username, role").eq("id", user.id).single()
           .then(({ data }) => setProfile(data));
+        fetchNotifications();
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -137,9 +156,45 @@ export function Navbar() {
               </div>
             )}
           </div>
-          <button className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-white/5 transition-colors relative">
-            <Bell className="w-5 h-5" />
-          </button>
+          <div ref={notifRef} className="relative">
+            <button onClick={() => { setNotifOpen(v => !v); if (!notifOpen && user) fetchNotifications(); }}
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-white/5 transition-colors relative">
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-brand-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 glass rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                  <span className="text-sm font-semibold text-white">通知</span>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllRead} className="text-xs text-brand-400 hover:text-brand-300">全部已讀</button>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {!user ? (
+                    <div className="p-4 text-center text-sm text-gray-500">登入後查看通知</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-gray-500">目前沒有通知</div>
+                  ) : notifications.map((n: any) => (
+                    <Link key={n.id} href={n.link ?? "#"}
+                      onClick={() => { setNotifOpen(false); if (!n.is_read) fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: n.id }) }); }}
+                      className={`flex gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${!n.is_read ? "bg-brand-900/10" : ""}`}>
+                      <span className="text-lg shrink-0">{{ comment: "💬", reply: "↩️", vote: "▲", system: "📢" }[n.type as string] ?? "🔔"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-200">{n.title}</p>
+                        {n.message && <p className="text-xs text-gray-500 truncate mt-0.5">{n.message}</p>}
+                      </div>
+                      {!n.is_read && <span className="w-2 h-2 bg-brand-500 rounded-full shrink-0 mt-1.5" />}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {user ? (
             <div className="relative">
@@ -170,6 +225,10 @@ export function Navbar() {
                   <Link href="/collection" onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
                     <BookmarkPlus className="w-4 h-4" /> 我的收藏
+                  </Link>
+                  <Link href="/wishlist" onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
+                    ⭐ 想求清單
                   </Link>
                   <button onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-red-400 transition-colors">
