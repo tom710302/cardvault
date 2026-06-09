@@ -1,162 +1,153 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal, TrendingUp, TrendingDown, Star } from "lucide-react";
-import { mockCards } from "@/lib/mockData";
-import { formatPrice, cn } from "@/lib/utils";
+import { Search, TrendingUp, TrendingDown, SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const games = ["全部", "MTG", "寶可夢", "遊戲王", "NBA", "MLB"];
 const sortOptions = [
-  { value: "trending", label: "熱門排行" },
-  { value: "price_desc", label: "價格（高→低）" },
-  { value: "price_asc", label: "價格（低→高）" },
-  { value: "change_desc", label: "漲幅最大" },
+  { value: "name", label: "名稱排序" },
+  { value: "game", label: "遊戲排序" },
+  { value: "rarity", label: "稀有度" },
 ];
+
+interface Card {
+  id: string; name: string; name_en: string | null; game: string; card_type: string;
+  set_name: string | null; rarity: string | null; image_url: string | null; description: string | null;
+}
+
+const gameEmoji: Record<string, string> = {
+  MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾", NFL: "🏈",
+};
 
 export default function CardsPage() {
   const [search, setSearch] = useState("");
   const [game, setGame] = useState("全部");
-  const [sort, setSort] = useState("trending");
+  const [sort, setSort] = useState("name");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [cards, setCards] = useState<Card[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockCards
-    .filter((c) => (game === "全部" || c.game === game) && c.name.includes(search))
-    .sort((a, b) => {
-      if (sort === "price_desc") return b.price - a.price;
-      if (sort === "price_asc") return a.price - b.price;
-      if (sort === "change_desc") return b.priceChange - a.priceChange;
-      return b.price - a.price;
-    });
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    let url = `/api/cards?limit=100`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (game !== "全部") url += `&game=${encodeURIComponent(game)}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      let { cards } = await res.json();
+      if (sort === "game") cards = [...cards].sort((a: Card, b: Card) => a.game.localeCompare(b.game));
+      setCards(cards ?? []);
+    }
+    setLoading(false);
+  }, [search, game, sort]);
+
+  useEffect(() => {
+    const t = setTimeout(fetchCards, 300);
+    return () => clearTimeout(t);
+  }, [fetchCards]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white mb-1">卡牌資料庫</h1>
-        <p className="text-gray-400 text-sm">瀏覽 120 萬+ 張實體卡牌的市場行情與社群評價</p>
+        <p className="text-gray-400 text-sm">瀏覽所有實體卡牌資料，點擊查看詳情與價格</p>
       </div>
 
       {/* Filters */}
       <div className="glass rounded-xl p-4 space-y-4">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex items-center gap-2 input flex-1">
+          <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 flex-1 focus-within:ring-2 focus-within:ring-brand-500">
             <Search className="w-4 h-4 text-gray-500 shrink-0" />
-            <input
-              className="bg-transparent flex-1 outline-none text-sm placeholder-gray-500 text-gray-100"
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="搜尋卡牌名稱..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+              className="bg-transparent flex-1 outline-none text-sm placeholder-gray-500 text-gray-100" />
           </div>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="input text-sm bg-gray-900"
-          >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+            {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <div className="flex gap-2">
-            <button
-              onClick={() => setView("grid")}
-              className={cn("px-3 py-2 rounded-lg text-sm transition-colors", view === "grid" ? "bg-brand-600 text-white" : "btn-secondary")}
-            >⊞</button>
-            <button
-              onClick={() => setView("list")}
-              className={cn("px-3 py-2 rounded-lg text-sm transition-colors", view === "list" ? "bg-brand-600 text-white" : "btn-secondary")}
-            >☰</button>
+            <button onClick={() => setView("grid")}
+              className={cn("px-3 py-2 rounded-lg text-sm transition-colors", view === "grid" ? "bg-brand-600 text-white" : "btn-secondary")}>⊞</button>
+            <button onClick={() => setView("list")}
+              className={cn("px-3 py-2 rounded-lg text-sm transition-colors", view === "list" ? "bg-brand-600 text-white" : "btn-secondary")}>☰</button>
           </div>
         </div>
-
-        {/* Game Filter */}
         <div className="flex gap-2 flex-wrap">
-          {games.map((g) => (
-            <button
-              key={g}
-              onClick={() => setGame(g)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+          {games.map(g => (
+            <button key={g} onClick={() => setGame(g)}
+              className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 game === g ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
-              )}
-            >{g}</button>
+              )}>
+              {gameEmoji[g] ?? ""} {g}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Results count */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-500">
-          找到 <span className="text-gray-300 font-medium">{filtered.length}</span> 張卡牌
+          找到 <span className="text-gray-300 font-medium">{cards.length}</span> 張卡牌
         </span>
         <div className="flex items-center gap-1 text-xs text-gray-500">
-          <SlidersHorizontal className="w-3 h-3" /> 進階篩選
+          <SlidersHorizontal className="w-3 h-3" />
         </div>
       </div>
 
-      {/* Grid View */}
-      {view === "grid" && (
+      {loading ? (
+        <div className={view === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4" : "space-y-2"}>
+          {Array(12).fill(0).map((_, i) => (
+            <div key={i} className={cn("glass rounded-xl shimmer", view === "grid" ? "aspect-[5/7]" : "h-16")} />
+          ))}
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="text-center py-16 text-gray-500">
+          <span className="text-4xl block mb-3">🃏</span>
+          <p>找不到符合條件的卡牌</p>
+          <button onClick={() => { setSearch(""); setGame("全部"); }}
+            className="btn-secondary mt-3 text-sm">清除篩選</button>
+        </div>
+      ) : view === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
-          {filtered.map((card) => (
+          {cards.map(card => (
             <Link href={`/cards/${card.id}`} key={card.id}
               className="glass rounded-xl overflow-hidden card-hover group">
-              <div className="aspect-[5/7] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20"
-                  style={{ background: `radial-gradient(circle, ${card.rarityColor}55 0%, transparent 70%)` }} />
-                <span className="text-5xl">🃏</span>
+              <div className="aspect-[5/7] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-5xl relative">
+                <span>{gameEmoji[card.game] ?? "🃏"}</span>
+                <span className="absolute top-2 right-2 text-xs bg-black/50 px-1.5 py-0.5 rounded text-gray-300">
+                  {card.card_type === "sports" ? "運動" : "TCG"}
+                </span>
               </div>
               <div className="p-2.5 space-y-1">
-                <div className="text-xs font-semibold text-white leading-tight line-clamp-2">{card.name}</div>
+                <div className="text-xs font-semibold text-white line-clamp-2 leading-tight">{card.name}</div>
                 <div className="text-[10px] text-gray-500">{card.game}</div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-brand-400">{formatPrice(card.price)}</span>
-                  <span className={`text-[10px] font-bold ${card.priceChange >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    {card.priceChange >= 0 ? "▲" : "▼"}{Math.abs(card.priceChange)}%
-                  </span>
-                </div>
+                {card.rarity && <div className="text-[10px] text-brand-400">{card.rarity}</div>}
               </div>
             </Link>
           ))}
         </div>
-      )}
-
-      {/* List View */}
-      {view === "list" && (
+      ) : (
         <div className="space-y-2">
-          {filtered.map((card) => (
+          {cards.map(card => (
             <Link href={`/cards/${card.id}`} key={card.id}
               className="glass rounded-xl p-4 flex items-center gap-4 card-hover group">
-              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0">🃏</div>
+              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0">
+                {gameEmoji[card.game] ?? "🃏"}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-white group-hover:text-brand-300 transition-colors">{card.name}</div>
-                <div className="text-xs text-gray-500">{card.game} · {card.set} · {card.rarity}</div>
-                <div className="flex gap-2 mt-1 flex-wrap">
-                  {card.tags.slice(0, 3).map((t) => (
-                    <span key={t} className="badge text-[10px] bg-gray-800 text-gray-400">{t}</span>
-                  ))}
-                </div>
+                {card.name_en && <div className="text-xs text-gray-500 mt-0.5">{card.name_en}</div>}
+                <div className="text-xs text-gray-500 mt-1">{card.game} · {card.set_name} · {card.rarity}</div>
               </div>
-              <div className="text-right shrink-0">
-                <div className="font-bold text-brand-400">{formatPrice(card.price)}</div>
-                <div className={`text-xs font-medium flex items-center gap-1 justify-end mt-1 ${card.priceChange >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {card.priceChange >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {Math.abs(card.priceChange)}%
-                </div>
-                <div className="text-xs text-gray-500 mt-1">{card.condition}</div>
+              <div className="shrink-0 text-right">
+                <span className="badge text-xs bg-gray-800 text-gray-400">
+                  {card.card_type === "sports" ? "運動卡" : "TCG"}
+                </span>
               </div>
             </Link>
           ))}
-        </div>
-      )}
-
-      {filtered.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
-          <Star className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>找不到符合條件的卡牌</p>
-          <button onClick={() => { setSearch(""); setGame("全部"); }} className="btn-secondary mt-3 text-sm">
-            清除篩選
-          </button>
         </div>
       )}
     </div>

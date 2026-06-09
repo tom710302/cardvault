@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search, User, Menu, X, Layers, LogOut, Shield } from "lucide-react";
+import { Bell, Search, User, Menu, X, Layers, LogOut, Shield, BookmarkPlus } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -163,9 +163,13 @@ export function Navbar() {
                       <Shield className="w-4 h-4" /> 後台管理
                     </Link>
                   )}
+                  <Link href="/profile" onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
+                    <User className="w-4 h-4" /> 個人資料
+                  </Link>
                   <Link href="/collection" onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
-                    <User className="w-4 h-4" /> 我的收藏
+                    <BookmarkPlus className="w-4 h-4" /> 我的收藏
                   </Link>
                   <button onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-red-400 transition-colors">
