@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardVault — 實體卡牌收藏交流平台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 300:'#9db3ff',400:'#7b8fff',500:'#5c6aff',600:'#4149f5',700:'#3438e0',800:'#2b2eb5',900:'#292d8e',950:'#181a52' },
+        gold: { 400:'#f5c842',500:'#e8b820' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { background: #030712; color: #f1f5f9; font-family: system-ui, sans-serif; }
+  .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+  .card-hover { transition: all 0.2s; cursor: pointer; }
+  .card-hover:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(92,106,255,0.12); }
+  .text-gradient { background: linear-gradient(135deg, #7b8fff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .page { display: none; }
+  .page.active { display: block; }
+  nav a.active { color: #7b8fff; background: rgba(65,73,245,0.15); }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #111827; } ::-webkit-scrollbar-thumb { background: #374151; border-radius: 9999px; }
+  .price-up { color: #4ade80; } .price-down { color: #f87171; }
+  .shimmer { animation: shimmer 2s infinite; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%); background-size: 200%; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .bar { transition: height 0.5s ease; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="sticky top-0 z-50 border-b border-white/10" style="background:rgba(3,7,18,0.85);backdrop-filter:blur(16px)">
+  <div class="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
+    <a href="#" onclick="showPage('home')" class="flex items-center gap-2 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm">CV</div>
+      <span class="font-bold text-lg text-white">Card<span class="text-brand-400">Vault</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-1 flex-1 ml-3">
+      <a href="#" onclick="showPage('home')" id="nav-home" class="active px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">首頁</a>
+      <a href="#" onclick="showPage('cards')" id="nav-cards" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">卡牌資料庫</a>
+      <a href="#" onclick="showPage('community')" id="nav-community" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">社群討論</a>
+      <a href="#" onclick="showPage('showcase')" id="nav-showcase" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">收藏展示</a>
+      <a href="#" onclick="showPage('collection')" id="nav-collection" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">我的收藏</a>
+    </nav>
+    <div class="flex items-center gap-2 ml-auto">
+      <div class="hidden md:flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-500 w-52">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        搜尋卡牌...
+      </div>
+      <button class="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full"></span>
+      </button>
+      <button class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        登入
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HOME PAGE ===== -->
+<div id="page-home" class="page active max-w-7xl mx-auto px-4 py-8 space-y-16">
+
+  <!-- Hero -->
+  <section class="relative rounded-2xl overflow-hidden border border-white/10 p-8 md:p-14" style="background:linear-gradient(135deg,#0f0f2e 0%,#111827 50%,#1a0a2e 100%)">
+    <div class="absolute" style="inset:0;background:radial-gradient(circle at 70% 50%,rgba(92,106,255,0.18) 0%,transparent 60%)"></div>
+    <div class="relative max-w-2xl space-y-5">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-brand-300 border border-brand-700/50" style="background:rgba(41,45,142,0.4)">🃏 台灣最大實體卡牌交流社群</div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight text-white">你的珍藏值得<br><span class="text-gradient">被世界看見</span></h1>
+      <p class="text-gray-400 text-lg leading-relaxed">集合 TCG 玩家與運動卡收藏家，一起討論、展示、追蹤市場行情。加入超過 50,000 位卡牌同好。</p>
+      <div class="flex flex-wrap gap-3 pt-2">
+        <button onclick="showPage('community')" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-medium px-5 py-2.5 rounded-lg transition-colors">加入討論 →</button>
+        <button onclick="showPage('cards')" class="flex items-center gap-2 bg-white/10 hover:bg-white/15 text-gray-200 font-medium px-5 py-2.5 rounded-lg transition-colors border border-white/10">瀏覽卡牌資料庫</button>
+      </div>
+    </div>
+    <div class="relative mt-10 md:absolute md:right-10 md:top-1/2 md:-translate-y-1/2 flex md:flex-col gap-3">
+      <div class="glass rounded-xl p-4 text-center flex-1 md:flex-none">
+        <div class="text-xl font-bold text-white">50,000+</div><div class="text-xs text-gray-500 mt-0.5">收藏家</div>
+      </div>
+      <div class="glass rounded-xl p-4 text-center flex-1 md:flex-none">
+        <div class="text-xl font-bold text-white">120萬+</div><div class="text-xs text-gray-500 mt-0.5">卡牌資料</div>
+      </div>
+      <div class="glass rounded-xl p-4 text-center flex-1 md:flex-none">
+        <div class="text-xl font-bold text-white">8,000+</div><div class="text-xs text-gray-500 mt-0.5">每日討論</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hot Cards -->
+  <section>
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">🔥 熱門卡牌</h2>
+      <button onclick="showPage('cards')" class="text-sm text-brand-400 hover:text-brand-300">查看全部 ›</button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="home-cards"></div>
+  </section>
+
+  <!-- Posts + Sidebar -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">⚡ 熱門討論</h2>
+        <button onclick="showPage('community')" class="text-sm text-brand-400 hover:text-brand-300">更多 ›</button>
+      </div>
+      <div id="home-posts" class="space-y-3"></div>
+    </div>
+    <div class="space-y-5">
+      <div class="glass rounded-xl p-4">
+        <h3 class="font-semibold text-white text-sm mb-4 flex items-center gap-2">🏆 本週活躍收藏家</h3>
+        <div id="home-users" class="space-y-3"></div>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <h3 class="font-semibold text-white text-sm mb-3">快速導覽</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="showPage('community')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">⚔️ MTG</button>
+          <button onclick="showPage('community')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">⚡ 寶可夢</button>
+          <button onclick="showPage('community')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">🌀 遊戲王</button>
+          <button onclick="showPage('community')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">🏀 NBA</button>
+          <button onclick="showPage('community')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">⚾ MLB</button>
+          <button onclick="showPage('cards')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-gray-200 text-sm">📈 價格榜</button>
+        </div>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <h3 class="font-semibold text-white text-sm mb-3 flex items-center gap-2">📊 今日漲跌排行</h3>
+        <div id="home-trending" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CARDS PAGE ===== -->
+<div id="page-cards" class="page max-w-7xl mx-auto px-4 py-8 space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-white mb-1">卡牌資料庫</h1>
+    <p class="text-gray-400 text-sm">瀏覽 120 萬+ 張實體卡牌的市場行情與社群評價</p>
+  </div>
+  <div class="glass rounded-xl p-4 space-y-4">
+    <div class="flex flex-col sm:flex-row gap-3">
+      <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 flex-1">
+        <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="card-search" onkeyup="filterCards()" placeholder="搜尋卡牌名稱..." class="bg-transparent flex-1 outline-none text-sm placeholder-gray-500 text-gray-100">
+      </div>
+      <select id="card-sort" onchange="filterCards()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+        <option value="price_desc">價格（高→低）</option>
+        <option value="price_asc">價格（低→高）</option>
+        <option value="change_desc">漲幅最大</option>
+      </select>
+    </div>
+    <div class="flex gap-2 flex-wrap" id="game-filters">
+      <button onclick="setGame('全部')" id="gf-全部" class="px-3 py-1.5 rounded-full text-sm font-medium bg-brand-600 text-white transition-colors">全部</button>
+      <button onclick="setGame('MTG')" id="gf-MTG" class="px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">MTG</button>
+      <button onclick="setGame('寶可夢')" id="gf-寶可夢" class="px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">寶可夢</button>
+      <button onclick="setGame('遊戲王')" id="gf-遊戲王" class="px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">遊戲王</button>
+      <button onclick="setGame('NBA')" id="gf-NBA" class="px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">NBA</button>
+      <button onclick="setGame('MLB')" id="gf-MLB" class="px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">MLB</button>
+    </div>
+  </div>
+  <div id="cards-count" class="text-sm text-gray-500"></div>
+  <div id="cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4"></div>
+</div>
+
+<!-- ===== CARD DETAIL PAGE ===== -->
+<div id="page-card-detail" class="page max-w-7xl mx-auto px-4 py-8 space-y-8">
+  <button onclick="showPage('cards')" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors">← 返回卡牌資料庫</button>
+  <div id="card-detail-content"></div>
+</div>
+
+<!-- ===== COMMUNITY PAGE ===== -->
+<div id="page-community" class="page max-w-7xl mx-auto px-4 py-8">
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <aside class="space-y-4">
+      <div class="glass rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-gray-300 mb-3">版塊選擇</h3>
+        <ul id="board-list" class="space-y-1"></ul>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-gray-300 mb-2">發文規則</h3>
+        <ul class="text-xs text-gray-500 space-y-1.5">
+          <li class="flex gap-1.5"><span class="text-brand-500">1.</span>請選擇正確板塊發文</li>
+          <li class="flex gap-1.5"><span class="text-brand-500">2.</span>標題清楚描述內容</li>
+          <li class="flex gap-1.5"><span class="text-brand-500">3.</span>價格詢問請附圖片</li>
+          <li class="flex gap-1.5"><span class="text-brand-500">4.</span>尊重其他收藏家</li>
+          <li class="flex gap-1.5"><span class="text-brand-500">5.</span>禁止廣告或詐騙行為</li>
+        </ul>
+      </div>
+    </aside>
+    <div class="lg:col-span-3 space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-white">社群討論</h1>
+          <p class="text-sm text-gray-500 mt-0.5">全部板 — 1,234 篇文章</p>
+        </div>
+        <button class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">✏️ 發文</button>
+      </div>
+      <div class="flex gap-2 border-b border-white/10">
+        <button class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-brand-500 text-brand-400 -mb-px">🔥 熱門</button>
+        <button class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 -mb-px">🕒 最新</button>
+        <button class="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 -mb-px">⭐ 精選</button>
+      </div>
+      <div id="community-posts" class="space-y-3 pt-2"></div>
+      <button class="w-full bg-white/10 hover:bg-white/15 text-gray-200 font-medium py-2.5 rounded-lg border border-white/10 transition-colors text-sm">載入更多</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SHOWCASE PAGE ===== -->
+<div id="page-showcase" class="page max-w-7xl mx-auto px-4 py-8 space-y-8">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-white">收藏展示牆</h1>
+      <p class="text-gray-400 text-sm mt-1">欣賞來自全台收藏家的珍藏，分享屬於你的驕傲</p>
+    </div>
+    <button class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shrink-0">⭐ 分享我的收藏</button>
+  </div>
+
+  <div class="glass rounded-2xl p-6 border" style="border-color:rgba(245,200,66,0.2);background:linear-gradient(135deg,rgba(245,200,66,0.06) 0%,rgba(92,106,255,0.06) 100%)">
+    <h3 class="font-semibold text-yellow-400 mb-4 flex items-center gap-2">🏆 本週精選收藏</h3>
+    <div id="showcase-featured" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  </div>
+
+  <div class="flex gap-2 flex-wrap">
+    <button class="px-4 py-2 rounded-full text-sm font-medium bg-brand-600 text-white">全部展示</button>
+    <button class="px-4 py-2 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">TCG 卡牌</button>
+    <button class="px-4 py-2 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">運動卡</button>
+    <button class="px-4 py-2 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200 transition-colors">精選</button>
+  </div>
+
+  <div id="showcase-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+</div>
+
+<!-- ===== COLLECTION PAGE ===== -->
+<div id="page-collection" class="page max-w-7xl mx-auto px-4 py-8 space-y-8">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-white">我的收藏庫</h1>
+      <p class="text-gray-400 text-sm mt-1">管理、追蹤你的所有實體卡牌</p>
+    </div>
+    <button class="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shrink-0">+ 新增卡牌</button>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="glass rounded-xl p-4"><div class="flex items-center gap-2 mb-2 text-blue-400">📦 <span class="text-xs text-gray-500">總收藏數</span></div><div class="text-2xl font-bold text-white">7 張</div></div>
+    <div class="glass rounded-xl p-4"><div class="flex items-center gap-2 mb-2 text-green-400">📈 <span class="text-xs text-gray-500">估計總價值</span></div><div class="text-2xl font-bold text-white">$18.1M</div></div>
+    <div class="glass rounded-xl p-4"><div class="flex items-center gap-2 mb-2 text-yellow-400">⭐ <span class="text-xs text-gray-500">最高單張</span></div><div class="text-2xl font-bold text-white">$9.5M</div></div>
+    <div class="glass rounded-xl p-4"><div class="flex items-center gap-2 mb-2 text-brand-400">📊 <span class="text-xs text-gray-500">本月漲幅</span></div><div class="text-2xl font-bold price-up">+8.3%</div></div>
+  </div>
+
+  <!-- Value Chart -->
+  <div class="glass rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-white">📊 收藏價值走勢</h3>
+      <div class="flex gap-2">
+        <button class="text-xs px-2 py-1 rounded text-gray-500 hover:text-gray-300 transition-colors">1個月</button>
+        <button class="text-xs px-2 py-1 rounded bg-brand-600 text-white">3個月</button>
+        <button class="text-xs px-2 py-1 rounded text-gray-500 hover:text-gray-300 transition-colors">1年</button>
+      </div>
+    </div>
+    <div class="h-32 flex items-end gap-1 px-2">
+      <div class="bar flex-1 rounded-t-sm" style="height:65%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:70%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:68%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:75%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:82%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:78%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:88%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:92%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:85%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:95%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:98%;background:rgba(92,106,255,0.35)"></div>
+      <div class="bar flex-1 rounded-t-sm" style="height:100%;background:rgba(92,106,255,0.6)"></div>
+    </div>
+    <div class="flex justify-between text-xs text-gray-600 mt-2 px-2">
+      <span>7月</span><span>8月</span><span>9月</span><span>10月</span><span>11月</span><span>12月</span>
+      <span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span>
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3">
+    <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 flex-1">
+      <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input placeholder="搜尋我的收藏..." class="bg-transparent flex-1 outline-none text-sm placeholder-gray-500 text-gray-100">
+    </div>
+    <button class="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-gray-200 font-medium px-4 py-2 rounded-lg border border-white/10 text-sm">🔽 篩選</button>
+  </div>
+
+  <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4"></div>
+</div>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/10 mt-16" style="background:#030712">
+  <div class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+    <div class="col-span-2 md:col-span-1">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xs">CV</div>
+        <span class="font-bold text-white">Card<span class="text-brand-400">Vault</span></span>
+      </div>
+      <p class="text-sm text-gray-500 leading-relaxed">TCG 與球員卡收藏家的最佳交流社群。<br>分享、討論、紀錄你的珍藏。</p>
+    </div>
+    <div>
+      <h4 class="text-sm font-semibold text-gray-300 mb-3">平台</h4>
+      <ul class="space-y-2 text-sm text-gray-500">
+        <li><a href="#" onclick="showPage('cards')" class="hover:text-gray-300">卡牌資料庫</a></li>
+        <li><a href="#" onclick="showPage('community')" class="hover:text-gray-300">社群討論</a></li>
+        <li><a href="#" onclick="showPage('showcase')" class="hover:text-gray-300">收藏展示</a></li>
+        <li><a href="#" class="hover:text-gray-300">價格參考</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-sm font-semibold text-gray-300 mb-3">遊戲分類</h4>
+      <ul class="space-y-2 text-sm text-gray-500">
+        <li><a href="#" class="hover:text-gray-300">MTG</a></li>
+        <li><a href="#" class="hover:text-gray-300">寶可夢</a></li>
+        <li><a href="#" class="hover:text-gray-300">遊戲王</a></li>
+        <li><a href="#" class="hover:text-gray-300">NBA 球員卡</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-sm font-semibold text-gray-300 mb-3">關於</h4>
+      <ul class="space-y-2 text-sm text-gray-500">
+        <li><a href="#" class="hover:text-gray-300">關於我們</a></li>
+        <li><a href="#" class="hover:text-gray-300">使用條款</a></li>
+        <li><a href="#" class="hover:text-gray-300">隱私政策</a></li>
+        <li><a href="#" class="hover:text-gray-300">聯絡我們</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/5 px-4 py-4 max-w-7xl mx-auto flex items-center justify-between text-xs text-gray-600">
+    <span>© 2026 CardVault. All rights reserved.</span>
+    <span>台灣最大卡牌交流社群</span>
+  </div>
+</footer>
+
+<script>
+const CARDS = [
+  { id:'1', name:'黑蓮花', nameEn:'Black Lotus', set:'Alpha Edition', game:'MTG', rarity:'特稀有', rarityColor:'#FFD700', price:2800000, change:5.2, condition:'NM', emoji:'🌸', desc:'魔法風雲會最稀有的卡牌之一，被稱為「神話中的神話」。' },
+  { id:'2', name:'超夢', nameEn:'Mewtwo', set:'基礎版 第一彈', game:'寶可夢', rarity:'全圖閃卡', rarityColor:'#E040FB', price:45000, change:-1.8, condition:'PSA 10', emoji:'😈', desc:'1996年第一彈基礎版全圖超夢，PSA 10 品相。' },
+  { id:'3', name:'青眼白龍', nameEn:'Blue-Eyes White Dragon', set:'初期版', game:'遊戲王', rarity:'超稀有', rarityColor:'#00BCD4', price:120000, change:8.5, condition:'LP', emoji:'🐉', desc:'初代遊戲王最具代表性的卡牌，收藏市場長年熱門。' },
+  { id:'4', name:'LeBron James RC', nameEn:'Rookie Card', set:'2003-04 Topps Chrome', game:'NBA', rarity:'Refractor', rarityColor:'#FF6B35', price:380000, change:12.3, condition:'BGS 9.5', emoji:'🏀', desc:'LeBron James 2003年新秀 Topps Chrome Refractor，BGS 9.5 極品。' },
+  { id:'5', name:'Mike Trout 1/1', nameEn:'Auto Patch Superfractor', set:'2011 Bowman Sterling', game:'MLB', rarity:'1/1 Superfractor', rarityColor:'#FF1744', price:5200000, change:2.1, condition:'PSA 10', emoji:'⚾', desc:'Mike Trout 簽名球衣卡 1/1 Superfractor，全球唯一一張。' },
+  { id:'6', name:'比卡超插圖師', nameEn:'Pikachu Illustrator', set:'CoroCoro 限定', game:'寶可夢', rarity:'Promo 限定', rarityColor:'#FFCA28', price:9500000, change:25.0, condition:'PSA 10', emoji:'⚡', desc:'世界上最稀有的寶可夢卡牌之一，僅39張存在於世。' },
+];
+
+const POSTS = [
+  { id:'1', type:'showcase', board:'MTG', title:'開箱！Final Fantasy MTG 聯名系列整盒，拉到了超夢幻閃卡', author:'龍騎士_Kai', avatar:'K', rep:1520, upvotes:342, comments:87, views:4821, ago:'30分鐘前', tags:['開箱','FF聯名','閃卡'], hasImg:true },
+  { id:'2', type:'price_check', board:'NBA', title:'價格詢問｜Wembanyama 2023 Rookie PSA 10，現在行情大概多少？', author:'球卡獵人', avatar:'B', rep:830, upvotes:58, comments:23, views:1243, ago:'2小時前', tags:['價格詢問','Wembanyama','PSA'], hasImg:false },
+  { id:'3', type:'discussion', board:'寶可夢', title:'【討論】近期寶可夢市場大幅下跌，大家怎麼看待現在的入場時機？', author:'Poké_Collector', avatar:'P', rep:2340, upvotes:215, comments:156, views:8932, ago:'5小時前', tags:['市場分析','投資','趨勢'], hasImg:false },
+  { id:'4', type:'news', board:'遊戲王', title:'【資訊】Master Duel 新系列確認實體化，神之宣告將再版！', author:'決鬥王', avatar:'D', rep:4120, upvotes:891, comments:234, views:15673, ago:'8小時前', tags:['官方資訊','再版','禁卡表'], hasImg:false },
+  { id:'5', type:'showcase', board:'MLB', title:'分享我的 Shohei Ohtani 完整 RC 收藏，花了三年才湊齊', author:'大谷應援團', avatar:'O', rep:3760, upvotes:1203, comments:318, views:22451, ago:'1天前', tags:['展示','大谷','完整收藏'], hasImg:true },
+];
+
+const USERS = [
+  { name:'龍騎士_Kai', avatar:'K', rep:1520, cards:247 },
+  { name:'Poké_Collector', avatar:'P', rep:2340, cards:1832 },
+  { name:'決鬥王', avatar:'D', rep:4120, cards:956 },
+  { name:'大谷應援團', avatar:'O', rep:3760, cards:543 },
+  { name:'球卡獵人', avatar:'B', rep:830, cards:128 },
+];
+
+const BOARDS = [
+  { id:'all', label:'全部', icon:'🃏', count:1234 },
+  { id:'mtg', label:'MTG', icon:'⚔️', count:342 },
+  { id:'pokemon', label:'寶可夢', icon:'⚡', count:567 },
+  { id:'yugioh', label:'遊戲王', icon:'🌀', count:289 },
+  { id:'nba', label:'NBA', icon:'🏀', count:198 },
+  { id:'mlb', label:'MLB', icon:'⚾', count:145 },
+];
+
+const TYPE_CONFIG = {
+  showcase:    { label:'📸 展示',      cls:'text-purple-400 bg-purple-900/30' },
+  price_check: { label:'💰 價格詢問',  cls:'text-yellow-400 bg-yellow-900/30' },
+  discussion:  { label:'🗣️ 討論',     cls:'text-blue-400 bg-blue-900/30' },
+  news:        { label:'📰 資訊',      cls:'text-green-400 bg-green-900/30' },
+};
+
+function fmt(n) {
+  return new Intl.NumberFormat('zh-TW',{style:'currency',currency:'TWD',maximumFractionDigits:0}).format(n);
+}
+
+let currentGame = '全部';
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + name);
+  if (navEl) navEl.classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'cards') renderCards();
+}
+
+// ---------- HOME ----------
+function renderHome() {
+  // Cards
+  const cg = document.getElementById('home-cards');
+  CARDS.slice(0,4).forEach(c => {
+    cg.innerHTML += `
+    <div onclick="showCardDetail('${c.id}')" class="glass rounded-xl overflow-hidden card-hover group">
+      <div class="aspect-[5/7] flex items-center justify-center text-6xl relative" style="background:linear-gradient(135deg,#1f2937,#111827)">
+        <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle,${c.rarityColor}55 0%,transparent 70%)"></div>
+        <span>${c.emoji}</span>
+      </div>
+      <div class="p-3 space-y-1.5">
+        <div class="flex items-start justify-between gap-1">
+          <span class="text-sm font-semibold text-white leading-tight line-clamp-1">${c.name}</span>
+          <span class="text-xs font-bold shrink-0 ${c.change>=0?'price-up':'price-down'}">${c.change>=0?'▲':'▼'}${Math.abs(c.change)}%</span>
+        </div>
+        <div class="text-xs text-gray-500">${c.game}</div>
+        <div class="text-sm font-bold text-brand-400">${fmt(c.price)}</div>
+      </div>
+    </div>`;
+  });
+
+  // Posts
+  const pp = document.getElementById('home-posts');
+  POSTS.slice(0,4).forEach(p => {
+    const tc = TYPE_CONFIG[p.type];
+    pp.innerHTML += `
+    <div onclick="showPage('community')" class="glass rounded-xl p-4 flex gap-4 card-hover">
+      <div class="flex flex-col items-center gap-1 shrink-0 pt-1">
+        <span class="text-gray-600 text-lg leading-none cursor-pointer hover:text-brand-400">▲</span>
+        <span class="text-sm font-bold text-gray-300">${p.upvotes}</span>
+      </div>
+      <div class="flex-1 min-w-0 space-y-1.5">
+        <div class="flex gap-2 flex-wrap">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${tc.cls}">${tc.label}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">${p.board}</span>
+          ${p.hasImg?'<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">🖼️ 附圖</span>':''}
+        </div>
+        <h3 class="font-semibold text-gray-100 leading-snug line-clamp-2 text-sm">${p.title}</h3>
+        <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+          <span class="flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-white text-[10px] font-bold">${p.avatar}</span>
+            ${p.author}
+          </span>
+          <span>💬 ${p.comments}</span>
+          <span>👁 ${p.views.toLocaleString()}</span>
+          <span>${p.ago}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // Users
+  const uu = document.getElementById('home-users');
+  USERS.forEach((u,i) => {
+    uu.innerHTML += `
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-600 w-4 font-mono">${i+1}</span>
+      <div class="w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white text-sm font-bold">${u.avatar}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-200 truncate">${u.name}</div>
+        <div class="text-xs text-gray-500">${u.cards.toLocaleString()} 張 · ${u.rep.toLocaleString()} 聲望</div>
+      </div>
+      ${i===0?'<span class="text-base">👑</span>':''}
+    </div>`;
+  });
+
+  // Trending
+  const tr = document.getElementById('home-trending');
+  [...CARDS].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change)).slice(0,4).forEach(c => {
+    tr.innerHTML += `
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-gray-300 truncate max-w-[140px]">${c.name}</span>
+      <span class="font-mono text-xs font-bold ${c.change>=0?'price-up':'price-down'}">${c.change>=0?'+':''}${c.change}%</span>
+    </div>`;
+  });
+}
+
+// ---------- CARDS ----------
+function renderCards() {
+  const search = document.getElementById('card-search').value;
+  const sort = document.getElementById('card-sort').value;
+  let filtered = CARDS.filter(c =>
+    (currentGame==='全部'||c.game===currentGame) &&
+    (c.name.includes(search)||c.game.includes(search))
+  );
+  if (sort==='price_desc') filtered.sort((a,b)=>b.price-a.price);
+  if (sort==='price_asc') filtered.sort((a,b)=>a.price-b.price);
+  if (sort==='change_desc') filtered.sort((a,b)=>b.change-a.change);
+
+  document.getElementById('cards-count').innerHTML =
+    `找到 <span class="text-gray-300 font-medium">${filtered.length}</span> 張卡牌`;
+
+  const g = document.getElementById('cards-grid');
+  g.innerHTML = '';
+  filtered.forEach(c => {
+    g.innerHTML += `
+    <div onclick="showCardDetail('${c.id}')" class="glass rounded-xl overflow-hidden card-hover group">
+      <div class="aspect-[5/7] flex items-center justify-center text-5xl relative" style="background:linear-gradient(135deg,#1f2937,#111827)">
+        <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle,${c.rarityColor}55 0%,transparent 70%)"></div>
+        <span>${c.emoji}</span>
+      </div>
+      <div class="p-2.5 space-y-1">
+        <div class="text-xs font-semibold text-white line-clamp-2 leading-tight">${c.name}</div>
+        <div class="text-[10px] text-gray-500">${c.game}</div>
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-brand-400">${fmt(c.price)}</span>
+          <span class="text-[10px] font-bold ${c.change>=0?'price-up':'price-down'}">${c.change>=0?'▲':'▼'}${Math.abs(c.change)}%</span>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function filterCards() { renderCards(); }
+
+function setGame(g) {
+  currentGame = g;
+  document.querySelectorAll('#game-filters button').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200';
+  });
+  const btn = document.getElementById('gf-' + g);
+  if (btn) btn.className = 'px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-brand-600 text-white';
+  renderCards();
+}
+
+// ---------- CARD DETAIL ----------
+function showCardDetail(id) {
+  const c = CARDS.find(x=>x.id===id);
+  if (!c) return;
+  const priceHistory = [340000,355000,348000,362000,375000,380000].map((p,i)=>({m:['1月','2月','3月','4月','5月','6月'][i],v:Math.round(c.price*(p/380000))}));
+  const maxP = Math.max(...priceHistory.map(p=>p.v));
+
+  document.getElementById('card-detail-content').innerHTML = `
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="space-y-4">
+      <div class="aspect-[5/7] rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center text-[100px] relative shadow-2xl"
+        style="background:linear-gradient(135deg,#1f2937,#111827);box-shadow:0 25px 60px ${c.rarityColor}22">
+        <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle,${c.rarityColor}88 0%,transparent 70%)"></div>
+        <span>${c.emoji}</span>
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors" onclick="this.classList.toggle('text-red-400');this.classList.toggle('bg-red-500/20')">
+          ♥ 收藏
+        </button>
+        <button class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors" onclick="showPage('collection')">
+          🔖 加入收藏庫
+        </button>
+      </div>
+    </div>
+
+    <div class="md:col-span-2 space-y-6">
+      <div>
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style="background:${c.rarityColor}22;color:${c.rarityColor}">${c.rarity}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">${c.game}</span>
+        </div>
+        <h1 class="text-3xl font-bold text-white">${c.name}</h1>
+        <div class="text-gray-400 text-sm mt-1">${c.nameEn}</div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div class="glass rounded-xl p-3"><div class="text-xs text-gray-500 mb-1">系列</div><div class="text-sm font-medium text-gray-200">${c.set}</div></div>
+        <div class="glass rounded-xl p-3"><div class="text-xs text-gray-500 mb-1">品相</div><div class="text-sm font-medium text-gray-200">${c.condition}</div></div>
+        <div class="glass rounded-xl p-3"><div class="text-xs text-gray-500 mb-1">遊戲</div><div class="text-sm font-medium text-gray-200">${c.game}</div></div>
+      </div>
+
+      <div class="glass rounded-xl p-5 space-y-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm text-gray-500 mb-1">社群均價（近90天）</div>
+            <div class="text-4xl font-bold text-white">${fmt(c.price)}</div>
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${c.change>=0?'bg-green-900/30 text-green-400':'bg-red-900/30 text-red-400'}">
+            ${c.change>=0?'↗':'↘'} ${c.change>=0?'+':''}${c.change}%
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div><div class="text-xs text-gray-500">30天低</div><div class="text-sm font-semibold text-gray-200 mt-0.5">${fmt(c.price*0.92)}</div></div>
+          <div><div class="text-xs text-gray-500">30天均</div><div class="text-sm font-semibold text-gray-200 mt-0.5">${fmt(c.price*0.97)}</div></div>
+          <div><div class="text-xs text-gray-500">30天高</div><div class="text-sm font-semibold text-gray-200 mt-0.5">${fmt(c.price*1.05)}</div></div>
+        </div>
+        <button class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-lg transition-colors text-sm">回報成交價格</button>
+      </div>
+
+      <p class="text-gray-400 text-sm leading-relaxed">${c.desc}</p>
+    </div>
+  </div>
+
+  <!-- Price Chart -->
+  <div class="glass rounded-xl p-6 mt-8">
+    <h3 class="font-semibold text-white mb-6 flex items-center gap-2">📈 近半年價格走勢</h3>
+    <div class="flex items-end gap-3 h-48 px-4">
+      ${priceHistory.map(p=>`
+      <div class="flex-1 flex flex-col items-center gap-2 group">
+        <div class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">${fmt(p.v)}</div>
+        <div class="w-full rounded-t-lg transition-all hover:opacity-80" style="height:${Math.round(p.v/maxP*100)}%;background:linear-gradient(180deg,rgba(92,106,255,0.8),rgba(92,106,255,0.4));min-height:8px"></div>
+        <div class="text-xs text-gray-500">${p.m}</div>
+      </div>`).join('')}
+    </div>
+    <div class="mt-6 space-y-2">
+      <h4 class="text-sm font-medium text-gray-300 mb-3">近期成交紀錄</h4>
+      ${[{price:c.price,cond:c.condition,date:'3天前',src:'Yahoo拍賣'},
+         {price:Math.round(c.price*0.95),cond:'LP',date:'1週前',src:'社群回報'},
+         {price:Math.round(c.price*1.02),cond:'NM',date:'2週前',src:'露天'}].map(tx=>`
+      <div class="flex items-center justify-between py-2 border-b border-white/5 text-sm">
+        <div class="flex items-center gap-3">
+          <span class="text-gray-200 font-medium">${fmt(tx.price)}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">${tx.cond}</span>
+        </div>
+        <div class="text-xs text-gray-500">${tx.src} · ${tx.date}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  showPage('card-detail');
+}
+
+// ---------- COMMUNITY ----------
+function renderCommunity() {
+  const bl = document.getElementById('board-list');
+  BOARDS.forEach((b,i) => {
+    bl.innerHTML += `
+    <li>
+      <button class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${i===0?'bg-brand-600/20 text-brand-300':'text-gray-400 hover:bg-white/5 hover:text-gray-200'}">
+        <span class="flex items-center gap-2"><span>${b.icon}</span><span class="font-medium">${b.label}</span></span>
+        <span class="text-xs text-gray-600">${b.count}</span>
+      </button>
+    </li>`;
+  });
+
+  const pp = document.getElementById('community-posts');
+  POSTS.forEach(p => {
+    const tc = TYPE_CONFIG[p.type];
+    pp.innerHTML += `
+    <div class="glass rounded-xl p-4 flex gap-4 card-hover cursor-pointer">
+      <div class="flex flex-col items-center gap-1 shrink-0 pt-1 min-w-[36px]">
+        <span class="text-gray-600 hover:text-brand-400 transition-colors text-lg leading-none cursor-pointer">▲</span>
+        <span class="text-sm font-bold text-gray-300">${p.upvotes}</span>
+        <span class="text-gray-600 hover:text-red-400 transition-colors text-lg leading-none cursor-pointer">▼</span>
+      </div>
+      <div class="flex-1 min-w-0 space-y-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${tc.cls}">${tc.label}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">${p.board}</span>
+          ${p.hasImg?'<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-400">🖼️ 附圖</span>':''}
+        </div>
+        <h2 class="font-semibold text-gray-100 hover:text-white transition-colors leading-snug">${p.title}</h2>
+        <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+          <span class="flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-white text-[10px] font-bold">${p.avatar}</span>
+            <span class="text-gray-400">${p.author}</span>
+          </span>
+          <span>💬 ${p.comments} 留言</span>
+          <span>👁 ${p.views.toLocaleString()}</span>
+          <span>${p.ago}</span>
+        </div>
+        <div class="flex gap-1.5 flex-wrap">
+          ${p.tags.map(t=>`<span class="text-xs text-brand-400 cursor-pointer hover:text-brand-300">#${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+// ---------- SHOWCASE ----------
+function renderShowcase() {
+  const featured = document.getElementById('showcase-featured');
+  USERS.slice(0,2).forEach((u,i) => {
+    const titles = ['我的完整 Alpha MTG 收藏 — 花了十年終於集齊','Pikachu Illustrator PSA 10 入手心得'];
+    featured.innerHTML += `
+    <div class="bg-white/5 rounded-xl p-4 flex gap-4 hover:bg-white/10 transition-colors cursor-pointer">
+      <div class="w-12 h-12 rounded-full bg-brand-700 flex items-center justify-center text-white text-xl font-bold shrink-0">${u.avatar}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-white text-sm leading-snug">${titles[i]}</div>
+        <div class="text-xs text-gray-500 mt-1">${u.name} · ${u.cards.toLocaleString()} 張收藏</div>
+        <div class="flex gap-3 mt-2 text-xs text-gray-500">
+          <span>❤️ ${[1203,891][i].toLocaleString()}</span>
+          <span>👁 ${[22451,15673][i].toLocaleString()}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  const showcaseTitles = [
+    '我的完整 Alpha MTG 收藏 — 花了十年終於集齊',
+    'Pikachu Illustrator PSA 10 入手心得分享',
+    'LeBron James RC 完整系列展示',
+    '遊戲王初期版珍藏開箱紀錄',
+    '2023 MLB 大谷翔平年度最佳卡片集',
+  ];
+  const sg = document.getElementById('showcase-grid');
+  USERS.forEach((u,i) => {
+    const cards = CARDS.slice(i%3,(i%3)+3);
+    sg.innerHTML += `
+    <div class="glass rounded-2xl overflow-hidden card-hover cursor-pointer group">
+      <div class="h-36 flex items-center justify-center gap-3 p-4 relative overflow-hidden" style="background:linear-gradient(135deg,#1f2937,#111827)">
+        <div class="absolute inset-0 opacity-10" style="background:radial-gradient(circle at 50%,rgba(92,106,255,0.4) 0%,transparent 70%)"></div>
+        ${cards.map((c,ci)=>`
+        <div class="w-16 h-24 rounded-lg bg-gray-700 flex items-center justify-center text-2xl border border-white/10 shadow-lg transition-transform group-hover:scale-105" style="transform:rotate(${(ci-1)*8}deg);z-index:${ci===1?10:5}">
+          ${c.emoji}
+        </div>`).join('')}
+      </div>
+      <div class="p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white text-sm font-bold shrink-0">${u.avatar}</div>
+          <div>
+            <div class="text-sm font-medium text-gray-200">${u.name}</div>
+            <div class="text-xs text-gray-500">${u.rep.toLocaleString()} 聲望</div>
+          </div>
+          ${i<2?'<span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-yellow-400 bg-yellow-900/20">⭐ 精選</span>':''}
+        </div>
+        <h3 class="text-sm font-semibold text-gray-100 group-hover:text-white leading-snug">${showcaseTitles[i]}</h3>
+        <div class="flex gap-2">
+          ${cards.slice(0,3).map(c=>`
+          <div class="flex-1 rounded-lg p-2 text-center" style="background:rgba(255,255,255,0.04)">
+            <div class="text-xs text-gray-400 truncate">${c.name}</div>
+            <div class="text-xs text-brand-400 font-medium mt-0.5">${fmt(c.price)}</div>
+          </div>`).join('')}
+        </div>
+        <div class="flex items-center gap-3 pt-1 border-t border-white/5 text-xs text-gray-500">
+          <span>❤️ ${[1203,891,654,432,218][i].toLocaleString()}</span>
+          <span>👁 ${[22451,15673,8932,4821,2341][i].toLocaleString()}</span>
+          <span>💬 ${[318,234,156,87,47][i]}</span>
+          <span class="ml-auto text-brand-400 hover:text-brand-300">查看完整 →</span>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+// ---------- COLLECTION ----------
+function renderCollection() {
+  const cg = document.getElementById('collection-grid');
+  // Add button
+  cg.innerHTML = `
+  <button onclick="alert('新增卡牌功能：掃條碼或搜尋新增到你的收藏庫')" class="glass rounded-xl border-2 border-dashed border-white/10 hover:border-brand-500/50 transition-colors flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-brand-400 aspect-[5/7]">
+    <span class="text-3xl">+</span>
+    <span class="text-xs">新增</span>
+  </button>`;
+
+  const myConditions = ['PSA 10','NM','LP','BGS 9.5','PSA 10','PSA 10'];
+  const myNotes = ['夢幻逸品','開包所得','二手入手','簽名限量版','傳家寶','人生目標'];
+
+  CARDS.forEach((c,i) => {
+    cg.innerHTML += `
+    <div onclick="showCardDetail('${c.id}')" class="glass rounded-xl overflow-hidden card-hover group cursor-pointer">
+      <div class="aspect-[5/7] flex items-center justify-center text-5xl relative" style="background:linear-gradient(135deg,#1f2937,#111827)">
+        <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle,${c.rarityColor}55 0%,transparent 70%)"></div>
+        <span>${c.emoji}</span>
+      </div>
+      <div class="p-2.5 space-y-1">
+        <div class="text-xs font-semibold text-white line-clamp-1">${c.name}</div>
+        <div class="text-[10px] text-gray-500">${c.game} · ${myConditions[i]}</div>
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-brand-400">${fmt(c.price)}</span>
+          <span class="text-[10px] font-bold ${c.change>=0?'price-up':'price-down'}">${c.change>=0?'▲':'▼'}${Math.abs(c.change)}%</span>
+        </div>
+        <div class="text-[10px] text-gray-600 italic truncate">${myNotes[i]}</div>
+      </div>
+    </div>`;
+  });
+}
+
+// Init
+renderHome();
+renderCommunity();
+renderShowcase();
+renderCollection();
+</script>
+</body>
+</html>
