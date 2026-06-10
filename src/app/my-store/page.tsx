@@ -35,7 +35,7 @@ export default function MyStorePage() {
   // Product form
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [productForm, setProductForm] = useState({ name: "", description: "", price: "", stock: "0", image_url: "", category: "" });
+  const [productForm, setProductForm] = useState({ name: "", description: "", price: "", stock: "0", image_url: "", category: "", game: "" });
   const [productSubmitting, setProductSubmitting] = useState(false);
 
   // Event form
@@ -97,12 +97,13 @@ export default function MyStorePage() {
       stock: parseInt(productForm.stock) || 0,
       image_url: productForm.image_url || null,
       category: productForm.category || null,
+      game: productForm.game || null,
     };
     const res = await fetch("/api/my-store/products", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (res.ok) {
       setShowAddProduct(false);
       setEditProduct(null);
-      setProductForm({ name: "", description: "", price: "", stock: "0", image_url: "", category: "" });
+      setProductForm({ name: "", description: "", price: "", stock: "0", image_url: "", category: "", game: "" });
       fetchProducts();
     } else { const { error } = await res.json(); alert(error ?? "操作失敗"); }
     setProductSubmitting(false);
@@ -116,7 +117,7 @@ export default function MyStorePage() {
 
   function startEditProduct(p: Product) {
     setEditProduct(p);
-    setProductForm({ name: p.name, description: p.description ?? "", price: p.price?.toString() ?? "", stock: p.stock.toString(), image_url: p.image_url ?? "", category: p.category ?? "" });
+    setProductForm({ name: p.name, description: p.description ?? "", price: p.price?.toString() ?? "", stock: p.stock.toString(), image_url: p.image_url ?? "", category: p.category ?? "", game: (p as any).game ?? "" });
     setShowAddProduct(true);
   }
 
@@ -206,7 +207,7 @@ export default function MyStorePage() {
               <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-white">{editProduct ? "✏️ 編輯商品" : "📦 新增商品"}</h2>
-                  <button onClick={() => { setShowAddProduct(false); setEditProduct(null); setProductForm({ name: "", description: "", price: "", stock: "0", image_url: "", category: "" }); }} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+                  <button onClick={() => { setShowAddProduct(false); setEditProduct(null); setProductForm({ name: "", description: "", price: "", stock: "0", image_url: "", category: "", game: "" }); }} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={submitProduct} className="space-y-3">
                   <div>
@@ -215,13 +216,25 @@ export default function MyStorePage() {
                       placeholder="例如：寶可夢 SV8 深淵之瞳 補充包"
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">分類</label>
-                      <input value={productForm.category} onChange={e => setProductForm(v => ({ ...v, category: e.target.value }))}
-                        placeholder="例如：補充包"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                      <label className="text-xs text-gray-400 mb-1 block">卡牌遊戲</label>
+                      <select value={productForm.game} onChange={e => setProductForm(v => ({ ...v, game: e.target.value }))}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                        <option value="">不指定</option>
+                        {["MTG", "寶可夢", "遊戲王", "NBA", "MLB", "NFL", "WS", "其他"].map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
                     </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">商品分類</label>
+                      <select value={productForm.category} onChange={e => setProductForm(v => ({ ...v, category: e.target.value }))}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                        <option value="">不指定</option>
+                        {["盒裝", "卡包", "卡套", "週邊商品", "單卡", "其他"].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs text-gray-400 mb-1 block">售價（TWD）</label>
                       <input type="number" value={productForm.price} onChange={e => setProductForm(v => ({ ...v, price: e.target.value }))}

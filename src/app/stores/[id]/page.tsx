@@ -30,6 +30,9 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"about" | "products" | "events" | "contact">("about");
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryPopup, setShowCategoryPopup] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -121,14 +124,59 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           )}
         </div>
 
-        {/* Games Tags */}
+        {/* Games Tags - 可點擊彈出分類 */}
         {store.games?.length > 0 && (
-          <div className="px-4 py-3 flex flex-wrap gap-2">
+          <div className="px-4 py-3 flex flex-wrap gap-2 relative">
             {store.games.map(g => (
-              <span key={g} className="badge text-sm bg-brand-900/30 text-brand-300 border border-brand-700/30 px-3 py-1">
+              <button key={g} onClick={() => {
+                if (selectedGame === g && showCategoryPopup) {
+                  setShowCategoryPopup(false);
+                  setSelectedGame(null);
+                } else {
+                  setSelectedGame(g);
+                  setSelectedCategory(null);
+                  setShowCategoryPopup(true);
+                  setTab("products");
+                }
+              }}
+                className={`badge text-sm px-3 py-1.5 transition-all cursor-pointer border ${
+                  selectedGame === g
+                    ? "bg-brand-600 text-white border-brand-500"
+                    : "bg-brand-900/30 text-brand-300 border-brand-700/30 hover:bg-brand-600/30"
+                }`}>
                 {gameEmoji[g] ?? "🃏"} {g}
-              </span>
+                <span className="ml-1 text-xs opacity-70">▾</span>
+              </button>
             ))}
+
+            {/* Category Popup */}
+            {showCategoryPopup && selectedGame && (
+              <div className="absolute left-4 top-12 z-20 glass rounded-xl shadow-2xl p-3 min-w-48 border border-white/15">
+                <div className="text-xs text-gray-500 mb-2 px-1">{gameEmoji[selectedGame]} {selectedGame} · 選擇分類</div>
+                <div className="space-y-1">
+                  <button onClick={() => { setSelectedCategory(null); setShowCategoryPopup(false); }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!selectedCategory ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
+                    全部商品
+                  </button>
+                  {["盒裝", "卡包", "卡套", "週邊商品", "單卡", "其他"].map(cat => (
+                    <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryPopup(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Active Filter Badge */}
+        {(selectedGame || selectedCategory) && (
+          <div className="px-4 pb-2 flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500">篩選：</span>
+            {selectedGame && <span className="badge text-xs text-brand-300 bg-brand-900/30">{gameEmoji[selectedGame]} {selectedGame}</span>}
+            {selectedCategory && <span className="badge text-xs text-brand-300 bg-brand-900/30">{selectedCategory}</span>}
+            <button onClick={() => { setSelectedGame(null); setSelectedCategory(null); }} className="text-xs text-gray-500 hover:text-gray-300 ml-1">✕ 清除</button>
           </div>
         )}
       </div>
@@ -225,11 +273,30 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           )}
 
           {/* Real Products from store_products table */}
-          {products.length > 0 && (
+          {products.length > 0 && (() => {
+            const filtered = products.filter(p => {
+              const matchGame = !selectedGame || (p as any).game === selectedGame;
+              const matchCat = !selectedCategory || p.category === selectedCategory;
+              return matchGame && matchCat;
+            });
+            return (
             <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-3">現售商品與庫存</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-400">
+                  現售商品與庫存
+                  {(selectedGame || selectedCategory) && (
+                    <span className="ml-2 text-brand-400">（{filtered.length} 件）</span>
+                  )}
+                </h3>
+                {(selectedGame || selectedCategory) && (
+                  <button onClick={() => { setSelectedGame(null); setSelectedCategory(null); }} className="text-xs text-gray-500 hover:text-gray-300">清除篩選</button>
+                )}
+              </div>
+              {filtered.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">此分類目前沒有商品</div>
+              ) : (
               <div className="space-y-2">
-                {products.map(p => (
+                {filtered.map(p => (
                   <div key={p.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
                     {p.image_url ? (
                       <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
@@ -251,9 +318,9 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
                     </div>
                   </div>
                 ))}
-              </div>
+              </div>)}
             </div>
-          )}
+          );})()}
 
           {!store.games?.length && !store.products?.length && products.length === 0 && (
             <p className="text-gray-500 text-sm">尚未填寫商品資訊。</p>
