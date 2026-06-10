@@ -252,7 +252,7 @@ export default function CollectionPage() {
                 <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
                   {item.image_url || item.cards?.image_url ? (
                     <img
-                      src={item.image_url || item.cards?.image_url}
+                      src={item.image_url ?? item.cards?.image_url ?? ""}
                       alt={item.cards?.name ?? ""}
                       className="w-full h-full object-cover"
                     />
