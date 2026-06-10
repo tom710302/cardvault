@@ -121,8 +121,7 @@ export default function StoresPage() {
         <div className="text-center py-20 text-gray-500 space-y-3">
           <MapPin className="w-12 h-12 mx-auto opacity-30" />
           <p className="text-lg">找不到符合條件的店舖</p>
-          <p className="text-sm">換個城市或卡牌種類試試，或新增你知道的店舖！</p>
-          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ 新增店舖</button>
+          <p className="text-sm">換個城市或卡牌種類試試，或聯絡管理員新增店舖。</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
