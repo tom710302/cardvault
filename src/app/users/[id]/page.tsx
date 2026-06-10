@@ -1,37 +1,59 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, Package, MessageSquare, Star, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { formatPrice, timeAgo } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare } from "lucide-react";
+import { cn, timeAgo } from "@/lib/utils";
 
 interface Profile {
-  id: string; username: string; display_name: string; avatar_url: string | null;
-  bio: string | null; role: string; reputation: number; created_at: string;
+  id: string; username: string; display_name: string | null; bio: string | null;
+  avatar_url: string | null; reputation: number; role: string; created_at: string;
 }
+interface CollectionItem {
+  id: string; card_id: string; condition: string; quantity: number;
+  image_url: string | null;
+  cards: { id: string; name: string; game: string; rarity: string | null; image_url: string | null } | null;
+}
+interface Post {
+  id: string; title: string; board: string; post_type: string;
+  upvotes: number; view_count: number; created_at: string; image_urls: string[] | null;
+}
+
+const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
 export default function UserProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [collections, setCollections] = useState<any[]>([]);
-  const [tab, setTab] = useState<"posts" | "collection">("posts");
+  const [collection, setCollection] = useState<CollectionItem[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [tab, setTab] = useState<"collection" | "posts">("collection");
   const [loading, setLoading] = useState(true);
+  const [isMe, setIsMe] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     async function load() {
+      // Check if viewing own profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id === params.id) { router.replace("/my-page"); return; }
+
       const { data: p } = await supabase.from("profiles").select("*").eq("id", params.id).single();
+      if (!p) { setLoading(false); return; }
       setProfile(p);
 
-      const { data: po } = await supabase.from("posts").select("id, title, board, post_type, upvotes, view_count, created_at")
-        .eq("author_id", params.id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(20);
-      setPosts(po ?? []);
+      // Load public collection
+      const { data: col } = await supabase.from("collections")
+        .select("id, card_id, condition, quantity, image_url, cards(id, name, game, rarity, image_url)")
+        .eq("user_id", params.id).eq("visibility", "public").order("created_at", { ascending: false });
+      setCollection(col ?? []);
 
-      const { data: co } = await supabase.from("collections")
-        .select("*, cards(name, game, rarity)").eq("user_id", params.id)
-        .eq("visibility", "public").limit(20);
-      setCollections(co ?? []);
+      // Load posts
+      const { data: postsData } = await supabase.from("posts")
+        .select("id, title, board, post_type, upvotes, view_count, created_at, image_urls")
+        .eq("author_id", params.id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(30);
+      setPosts(postsData ?? []);
 
       setLoading(false);
     }
@@ -39,103 +61,173 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   }, [params.id]);
 
   if (loading) return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
-      {Array(3).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-20 shimmer" />)}
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
+      <div className="glass rounded-2xl h-40 shimmer" />
+      <div className="grid grid-cols-3 gap-1">{Array(9).fill(0).map((_, i) => <div key={i} className="aspect-square glass shimmer" />)}</div>
     </div>
   );
 
   if (!profile) return (
-    <div className="max-w-4xl mx-auto px-4 py-16 text-center text-gray-500">
-      <p>找不到此用戶</p>
-      <Link href="/" className="btn-secondary mt-4 inline-flex text-sm">回首頁</Link>
+    <div className="max-w-3xl mx-auto px-4 py-16 text-center text-gray-500 space-y-3">
+      <p className="text-lg">找不到此用戶</p>
+      <Link href="/" className="btn-secondary text-sm inline-flex">← 返回首頁</Link>
     </div>
   );
 
-  const typeColor: Record<string, string> = {
-    discussion: "text-blue-400 bg-blue-900/30", showcase: "text-purple-400 bg-purple-900/30",
-    price_check: "text-yellow-400 bg-yellow-900/30", news: "text-green-400 bg-green-900/30",
-  };
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <Link href="/community" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200">
-        <ArrowLeft className="w-4 h-4" /> 返回
-      </Link>
+    <div className="max-w-3xl mx-auto">
+      {/* Back */}
+      <div className="px-4 pt-6">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> 返回
+        </button>
+      </div>
 
       {/* Profile Header */}
-      <div className="glass rounded-2xl p-6">
-        <div className="flex items-start gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-brand-700 flex items-center justify-center text-white text-3xl font-bold shrink-0">
-            {profile.username?.[0]?.toUpperCase() ?? "?"}
+      <div className="px-4 pt-4 pb-4 space-y-5">
+        <div className="flex items-start gap-6">
+          {/* Avatar */}
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden shrink-0">
+            {profile.avatar_url
+              ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+              : profile.username?.[0]?.toUpperCase() ?? "?"}
           </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-white">{profile.display_name || profile.username}</h1>
-              <span className="text-gray-400 text-sm">@{profile.username}</span>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap mb-3">
+              <h1 className="text-xl font-bold text-white">{profile.username}</h1>
               {profile.role !== "user" && (
-                <span className={`badge text-xs ${profile.role === "admin" ? "text-red-400 bg-red-900/30" : "text-yellow-400 bg-yellow-900/30"}`}>
+                <span className={`badge text-xs ${profile.role === "admin" ? "text-red-400 bg-red-900/30" : profile.role === "store_owner" ? "text-orange-400 bg-orange-900/30" : "text-yellow-400 bg-yellow-900/30"}`}>
                   {profile.role}
                 </span>
               )}
             </div>
-            {profile.bio && <p className="text-gray-400 text-sm">{profile.bio}</p>}
-            <div className="flex gap-4 text-sm text-gray-500 flex-wrap">
-              <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-yellow-400" /> {profile.reputation.toLocaleString()} 聲望</span>
-              <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5 text-brand-400" /> {collections.length} 張公開收藏</span>
-              <span className="flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5 text-green-400" /> {posts.length} 篇文章</span>
-              <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(profile.created_at).toLocaleDateString("zh-TW")} 加入</span>
+
+            {/* Stats */}
+            <div className="flex gap-6 mb-3">
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">{collection.length}</div>
+                <div className="text-xs text-gray-500">收藏</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">{posts.length}</div>
+                <div className="text-xs text-gray-500">貼文</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">{profile.reputation.toLocaleString()}</div>
+                <div className="text-xs text-gray-500">聲望</div>
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div className="text-sm space-y-0.5">
+              {profile.display_name && profile.display_name !== profile.username && (
+                <p className="font-semibold text-gray-200">{profile.display_name}</p>
+              )}
+              {profile.bio && <p className="text-gray-400 leading-relaxed">{profile.bio}</p>}
+              <p className="text-gray-600 text-xs">{new Date(profile.created_at).toLocaleDateString("zh-TW")} 加入</p>
             </div>
           </div>
+        </div>
+
+        {/* Message Button */}
+        <div className="flex gap-2">
+          <Link href={`/community?search=${encodeURIComponent(profile.username)}`}
+            className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
+            <MessageSquare className="w-4 h-4" /> 查看 TA 的文章
+          </Link>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/10">
-        {([["posts", `📝 文章（${posts.length}）`], ["collection", `📦 收藏（${collections.length}）`]] as const).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
-            {label}
+      <div className="border-t border-white/10 flex">
+        {([
+          ["collection", <Grid3X3 className="w-5 h-5" />, "收藏"],
+          ["posts", <Star className="w-5 h-5" />, "貼文"],
+        ] as const).map(([id, icon, label]) => (
+          <button key={id} onClick={() => setTab(id as any)}
+            className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-t-2 -mt-px transition-colors",
+              tab === id ? "border-white text-white" : "border-transparent text-gray-500 hover:text-gray-300"
+            )}>
+            {icon} <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
       </div>
 
-      {tab === "posts" && (
-        <div className="space-y-3">
-          {posts.length === 0 ? (
-            <div className="text-center py-10 text-gray-500 text-sm">還沒有發過文章</div>
-          ) : posts.map(post => (
-            <Link key={post.id} href={`/community/${post.id}`}
-              className="glass rounded-xl p-4 flex gap-3 card-hover group block">
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className={`badge text-xs ${typeColor[post.post_type] ?? "text-gray-400 bg-gray-800"}`}>{post.post_type}</span>
-                  <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
-                </div>
-                <h3 className="font-medium text-gray-200 group-hover:text-white transition-colors">{post.title}</h3>
-                <div className="flex gap-3 text-xs text-gray-500">
-                  <span>▲ {post.upvotes}</span>
-                  <span>👁 {post.view_count}</span>
-                  <span>{timeAgo(new Date(post.created_at))}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+      {/* Collection Grid */}
+      {tab === "collection" && (
+        collection.length === 0 ? (
+          <div className="text-center py-20 text-gray-500 space-y-2">
+            <Package className="w-10 h-10 mx-auto opacity-30" />
+            <p>沒有公開的收藏</p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="grid grid-cols-3 gap-0.5">
+              {collection.map(item => (
+                <Link key={item.id} href={`/cards/${item.card_id}`}
+                  className="relative aspect-square bg-gray-900 overflow-hidden group">
+                  {item.image_url || item.cards?.image_url ? (
+                    <img
+                      src={item.image_url ?? item.cards?.image_url ?? ""}
+                      alt={item.cards?.name ?? ""}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                      <span className="text-4xl">{gameEmoji[item.cards?.game ?? ""] ?? "🃏"}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                    <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name}</p>
+                    <p className="text-gray-300 text-[10px]">{item.condition}</p>
+                  </div>
+                  {item.quantity > 1 && (
+                    <div className="absolute top-1.5 left-1.5 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      ×{item.quantity}
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+            <div className="text-center py-3 text-xs text-gray-600">共 {collection.length} 張公開收藏</div>
+          </div>
+        )
       )}
 
-      {tab === "collection" && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {collections.length === 0 ? (
-            <div className="col-span-full text-center py-10 text-gray-500 text-sm">沒有公開的收藏</div>
-          ) : collections.map(item => (
-            <div key={item.id} className="glass rounded-xl p-3 space-y-1.5">
-              <div className="w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-4xl">🃏</div>
-              <div className="text-xs font-medium text-gray-200 truncate">{item.cards?.name}</div>
-              <div className="text-[10px] text-gray-500">{item.cards?.game} · {item.condition}</div>
-            </div>
-          ))}
-        </div>
+      {/* Posts Grid */}
+      {tab === "posts" && (
+        posts.length === 0 ? (
+          <div className="text-center py-20 text-gray-500 space-y-2">
+            <Star className="w-10 h-10 mx-auto opacity-30" />
+            <p>還沒有發過貼文</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-0.5">
+            {posts.map(post => (
+              <Link key={post.id} href={`/community/${post.id}`}
+                className="relative aspect-square bg-gray-900 overflow-hidden group">
+                {post.image_urls && post.image_urls.length > 0 ? (
+                  <img src={post.image_urls[0]} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 bg-gradient-to-br from-gray-800 to-gray-900">
+                    <span className="text-2xl">
+                      {{ discussion: "🗣️", showcase: "📸", price_check: "💰", news: "📰" }[post.post_type] ?? "📝"}
+                    </span>
+                    <p className="text-white text-[10px] font-medium text-center line-clamp-3 leading-tight">{post.title}</p>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 text-white text-xs font-medium">
+                  <span>▲ {post.upvotes}</span>
+                  <span>👁 {post.view_count}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )
       )}
+      <div className="h-16" />
     </div>
   );
 }
