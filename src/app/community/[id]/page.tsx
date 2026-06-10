@@ -23,6 +23,7 @@ interface Comment {
 interface Post {
   id: string; title: string; content: string; board: string; post_type: string;
   upvotes: number; view_count: number; created_at: string; author_id: string;
+  image_urls: string[] | null;
   profiles: { id: string; username: string; avatar_url: string | null; reputation: number; role: string } | null;
 }
 
