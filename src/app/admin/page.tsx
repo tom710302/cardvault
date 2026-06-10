@@ -12,7 +12,8 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "store-accounts">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores">("dashboard");
+  const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -203,7 +204,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["store-accounts", "🔑 店主帳號"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -430,6 +431,15 @@ export default function AdminPage() {
         {/* Stores Management */}
         {tab === "stores" && (
           <div className="space-y-4">
+            {/* Sub Tabs */}
+            <div className="flex gap-2 border-b border-white/10 pb-0">
+              {([["list", "🏪 店舖列表"], ["accounts", "🔑 店主帳號"]] as const).map(([id, label]) => (
+                <button key={id} onClick={() => setStoreSubTab(id)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${storeSubTab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             {showAddStore && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
                 <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
@@ -510,10 +520,10 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="glass rounded-xl overflow-hidden">
+            {storeSubTab === "list" && <div className="glass rounded-xl overflow-hidden">
               <div className="p-4 border-b border-white/10 flex items-center justify-between">
                 <h3 className="font-semibold text-white flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-brand-400" /> 店舖管理（{stores.length} 間）
+                  <MapPin className="w-4 h-4 text-brand-400" /> 店舖列表（{stores.length} 間）
                 </h3>
                 <button onClick={() => setShowAddStore(true)} className="btn-primary text-sm flex items-center gap-1.5 px-3 py-1.5">
                   <Plus className="w-3.5 h-3.5" /> 新增店舖
@@ -559,86 +569,80 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
+            </div>}
 
-        {/* Store Accounts */}
-        {tab === "store-accounts" && (
-          <div className="space-y-6">
-            {/* Create Account Form */}
-            <div className="glass rounded-xl p-5 space-y-4">
-              <h3 className="font-semibold text-white flex items-center gap-2">🔑 建立店主帳號</h3>
-              <p className="text-xs text-gray-500">建立後帳號可直接登入，在「我的店舖」後台管理商品與活動。</p>
-              <form onSubmit={createStoreAccount} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">登入 Email *</label>
-                    <input type="email" value={storeAccountForm.email} onChange={e => setStoreAccountForm(v => ({ ...v, email: e.target.value }))} required
-                      placeholder="store@example.com"
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">密碼 *</label>
-                    <input type="text" value={storeAccountForm.password} onChange={e => setStoreAccountForm(v => ({ ...v, password: e.target.value }))} required
-                      placeholder="至少 6 個字元"
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">用戶名 *</label>
-                    <input value={storeAccountForm.username} onChange={e => setStoreAccountForm(v => ({ ...v, username: e.target.value }))} required
-                      placeholder="例如：arima_store"
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">綁定店舖 *</label>
-                    <select value={storeAccountForm.store_id} onChange={e => setStoreAccountForm(v => ({ ...v, store_id: e.target.value }))} required
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
-                      <option value="">請選擇店舖</option>
-                      {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" disabled={storeAccountSubmitting} className="btn-primary text-sm px-4 py-2 flex items-center gap-2 disabled:opacity-50">
-                  {storeAccountSubmitting ? "建立中..." : "🔑 建立店主帳號"}
-                </button>
-              </form>
-            </div>
-
-            {/* Existing Store Accounts */}
-            <div className="glass rounded-xl overflow-hidden">
-              <div className="p-4 border-b border-white/10">
-                <h3 className="font-semibold text-white">現有店主帳號（{storeAccounts.length}）</h3>
-              </div>
-              {storeAccounts.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 text-sm">還沒有店主帳號</div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {storeAccounts.map(acc => (
-                    <div key={acc.id} className="p-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-orange-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {acc.username?.[0]?.toUpperCase() ?? "S"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-200">{acc.username}</span>
-                          <span className="badge text-xs text-orange-400 bg-orange-900/30">店主</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          綁定店舖：{(acc as any).stores?.name ?? "未知"}
-                        </p>
-                      </div>
-                      <button onClick={() => revokeStoreAccount(acc.id)}
-                        className="text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded transition-colors">
-                        撤銷權限
-                      </button>
+            {/* Store Accounts Sub Tab */}
+            {storeSubTab === "accounts" && <div className="space-y-4">
+              <div className="glass rounded-xl p-5 space-y-4">
+                <h3 className="font-semibold text-white flex items-center gap-2">🔑 建立店主帳號</h3>
+                <p className="text-xs text-gray-500">建立後帳號可直接登入，在「我的店舖」後台管理商品與活動。</p>
+                <form onSubmit={createStoreAccount} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">登入 Email *</label>
+                      <input type="email" value={storeAccountForm.email} onChange={e => setStoreAccountForm(v => ({ ...v, email: e.target.value }))} required
+                        placeholder="store@example.com"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
                     </div>
-                  ))}
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">密碼 *</label>
+                      <input type="text" value={storeAccountForm.password} onChange={e => setStoreAccountForm(v => ({ ...v, password: e.target.value }))} required
+                        placeholder="至少 6 個字元"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">用戶名 *</label>
+                      <input value={storeAccountForm.username} onChange={e => setStoreAccountForm(v => ({ ...v, username: e.target.value }))} required
+                        placeholder="例如：arima_store"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">綁定店舖 *</label>
+                      <select value={storeAccountForm.store_id} onChange={e => setStoreAccountForm(v => ({ ...v, store_id: e.target.value }))} required
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                        <option value="">請選擇店舖</option>
+                        {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={storeAccountSubmitting} className="btn-primary text-sm px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+                    {storeAccountSubmitting ? "建立中..." : "🔑 建立店主帳號"}
+                  </button>
+                </form>
+              </div>
+
+              <div className="glass rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-white/10">
+                  <h3 className="font-semibold text-white">現有店主帳號（{storeAccounts.length}）</h3>
                 </div>
-              )}
-            </div>
+                {storeAccounts.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 text-sm">還沒有店主帳號</div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {storeAccounts.map(acc => (
+                      <div key={acc.id} className="p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-orange-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          {acc.username?.[0]?.toUpperCase() ?? "S"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-200">{acc.username}</span>
+                            <span className="badge text-xs text-orange-400 bg-orange-900/30">店主</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">綁定店舖：{(acc as any).stores?.name ?? "未知"}</p>
+                        </div>
+                        <button onClick={() => revokeStoreAccount(acc.id)}
+                          className="text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded transition-colors">
+                          撤銷權限
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>}
           </div>
         )}
       </div>
