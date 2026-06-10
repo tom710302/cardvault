@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "請先登入後才能新增卡牌" }, { status: 401 });
 
   const body = await request.json();
-  const { name, name_en, game, card_type, set_name, set_code, rarity, description } = body;
+  const { name, name_en, game, card_type, set_name, set_code, rarity, description, image_url } = body;
   if (!name || !game) return NextResponse.json({ error: "卡牌名稱和遊戲為必填" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("cards")
-    .insert({ name, name_en, game, card_type: card_type ?? "tcg", set_name, set_code, rarity, description, is_active: true })
+    .insert({ name, name_en, game, card_type: card_type ?? "tcg", set_name, set_code, rarity, description, image_url: image_url || null, is_active: true })
     .select()
     .single();
 

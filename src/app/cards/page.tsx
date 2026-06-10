@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, SlidersHorizontal, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 const games = ["全部", "MTG", "寶可夢", "遊戲王", "NBA", "MLB"];
 const sortOptions = [
@@ -31,7 +32,7 @@ export default function CardsPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "" });
+  const [addForm, setAddForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "", image_url: "" });
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
 
@@ -68,7 +69,7 @@ export default function CardsPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setAddForm({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "" });
+      setAddForm({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", set_code: "", rarity: "", description: "", image_url: "" });
       fetchCards();
     } else {
       const { error } = await res.json();
@@ -139,6 +140,21 @@ export default function CardsPage() {
                   placeholder="簡單介紹這張卡牌..."
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
+
+              {/* 卡牌圖片 */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">卡牌圖片（選填）</label>
+                <ImageUpload
+                  folder="cards"
+                  label="上傳卡牌圖片"
+                  hint="JPG、PNG、WebP，最大 5MB"
+                  currentUrl={addForm.image_url}
+                  className="aspect-[5/3]"
+                  onUpload={(url) => setAddForm(v => ({ ...v, image_url: url }))}
+                  onRemove={() => setAddForm(v => ({ ...v, image_url: "" }))}
+                />
+              </div>
+
               <div className="flex gap-3 justify-end pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
                 <button type="submit" disabled={submitting}
@@ -222,8 +238,11 @@ export default function CardsPage() {
           {cards.map(card => (
             <Link href={`/cards/${card.id}`} key={card.id}
               className="glass rounded-xl overflow-hidden card-hover group">
-              <div className="aspect-[5/7] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-5xl relative">
-                <span>{gameEmoji[card.game] ?? "🃏"}</span>
+              <div className="aspect-[5/7] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-5xl relative overflow-hidden">
+                {card.image_url
+                  ? <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                  : <span>{gameEmoji[card.game] ?? "🃏"}</span>
+                }
                 <span className="absolute top-2 right-2 text-xs bg-black/50 px-1.5 py-0.5 rounded text-gray-300">
                   {card.card_type === "sports" ? "運動" : "TCG"}
                 </span>
@@ -241,8 +260,11 @@ export default function CardsPage() {
           {cards.map(card => (
             <Link href={`/cards/${card.id}`} key={card.id}
               className="glass rounded-xl p-4 flex items-center gap-4 card-hover group">
-              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0">
-                {gameEmoji[card.game] ?? "🃏"}
+              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                {card.image_url
+                  ? <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                  : gameEmoji[card.game] ?? "🃏"
+                }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-white group-hover:text-brand-300 transition-colors">{card.name}</div>
