@@ -175,8 +175,18 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
               <span>{timeAgo(new Date(post.created_at))}</span>
             </div>
             {!editing && (
-              <div className="prose prose-invert max-w-none">
+              <div className="space-y-4">
                 <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                {post.image_urls && post.image_urls.length > 0 && (
+                  <div className={`grid gap-2 ${post.image_urls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                    {post.image_urls.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noreferrer"
+                        className="rounded-xl overflow-hidden block aspect-video hover:opacity-90 transition-opacity">
+                        <img src={url} alt={`附圖 ${i + 1}`} className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

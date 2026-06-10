@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X } from "lucide-react";
+import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff } from "lucide-react";
 import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface CollectionItem {
   id: string; condition: string; quantity: number; notes: string | null; created_at: string;
@@ -22,7 +23,7 @@ export default function CollectionPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardSearch, setCardSearch] = useState("");
-  const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "" });
+  const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
 
@@ -59,7 +60,7 @@ export default function CollectionPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setAddForm({ card_id: "", condition: "NM", quantity: 1, notes: "" });
+      setAddForm({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
       setCardSearch(""); setCards([]);
       fetchCollection();
     } else {
@@ -143,6 +144,42 @@ export default function CollectionPage() {
                   placeholder="入手方式、心得..."
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
+
+              {/* 卡牌圖片上傳 */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">上傳卡牌照片（選填）</label>
+                <ImageUpload
+                  folder="collections"
+                  label="上傳你的卡牌實體照片"
+                  hint="JPG、PNG，最大 5MB"
+                  currentUrl={addForm.image_url}
+                  className="aspect-[5/3]"
+                  onUpload={(url) => setAddForm(v => ({ ...v, image_url: url }))}
+                  onRemove={() => setAddForm(v => ({ ...v, image_url: "" }))}
+                />
+              </div>
+
+              {/* 可見度 */}
+              <div className="flex items-center justify-between py-2 border border-white/10 rounded-xl px-3">
+                <div className="flex items-center gap-2 text-sm">
+                  {addForm.visibility === "public"
+                    ? <Eye className="w-4 h-4 text-green-400" />
+                    : <EyeOff className="w-4 h-4 text-gray-500" />}
+                  <span className="text-gray-300">
+                    {addForm.visibility === "public" ? "公開展示" : "僅自己可見"}
+                  </span>
+                </div>
+                <button type="button"
+                  onClick={() => setAddForm(v => ({ ...v, visibility: v.visibility === "public" ? "private" : "public" }))}
+                  className={cn("text-xs px-3 py-1 rounded-full transition-colors",
+                    addForm.visibility === "public"
+                      ? "bg-green-900/30 text-green-400 hover:bg-green-900/50"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  )}>
+                  {addForm.visibility === "public" ? "切換為私人" : "切換為公開"}
+                </button>
+              </div>
+
               <div className="flex gap-3 justify-end">
                 <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
                 <button type="submit" disabled={submitting || !addForm.card_id}
@@ -209,8 +246,12 @@ export default function CollectionPage() {
           </button>
           {filtered.map(item => (
             <div key={item.id} className="glass rounded-xl overflow-hidden card-hover group relative">
-              <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative">
-                <span>🃏</span>
+              <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
+                {(item as any).image_url ? (
+                  <img src={(item as any).image_url} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
+                ) : (
+                  <span>🃏</span>
+                )}
                 {item.quantity > 1 && (
                   <span className="absolute top-2 right-2 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{item.quantity}</span>
                 )}

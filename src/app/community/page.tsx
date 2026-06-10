@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award, X, Send } from "lucide-react";
+import { PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award, X, Send, ImageIcon } from "lucide-react";
 import { timeAgo, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 const sortTabs = [
   { id: "hot", label: "熱門", icon: Flame },
@@ -54,6 +55,7 @@ export default function CommunityPage() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [newPost, setNewPost] = useState({ title: "", content: "", board: "general", post_type: "discussion" });
+  const [postImages, setPostImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
 
@@ -85,11 +87,12 @@ export default function CommunityPage() {
     const res = await fetch("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPost),
+      body: JSON.stringify({ ...newPost, image_urls: postImages }),
     });
     if (res.ok) {
       setShowNewPost(false);
       setNewPost({ title: "", content: "", board: "general", post_type: "discussion" });
+      setPostImages([]);
       fetchPosts();
     } else {
       const { error } = await res.json();
@@ -137,8 +140,35 @@ export default function CommunityPage() {
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">內容</label>
                 <textarea value={newPost.content} onChange={e => setNewPost(v => ({ ...v, content: e.target.value }))}
-                  placeholder="分享你的想法..." required rows={6}
+                  placeholder="分享你的想法..." required rows={5}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" /> 附圖（最多 4 張，選填）
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {postImages.map((url, i) => (
+                    <div key={i} className="relative rounded-lg overflow-hidden aspect-video">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setPostImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {postImages.length < 4 && (
+                    <ImageUpload
+                      folder="posts"
+                      label="點擊上傳圖片"
+                      hint="JPG、PNG，最大 5MB"
+                      className="aspect-video"
+                      onUpload={(url) => setPostImages(prev => [...prev, url])}
+                    />
+                  )}
+                </div>
               </div>
               <div className="flex gap-3 justify-end">
                 <button type="button" onClick={() => setShowNewPost(false)} className="btn-secondary text-sm px-4 py-2">取消</button>

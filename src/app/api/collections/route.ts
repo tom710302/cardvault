@@ -22,11 +22,18 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
 
   const body = await request.json();
-  const { card_id, condition, quantity, notes } = body;
+  const { card_id, condition, quantity, notes, image_url, visibility } = body;
 
   const { data, error } = await supabase
     .from("collections")
-    .insert({ user_id: user.id, card_id, condition: condition ?? "NM", quantity: quantity ?? 1, notes })
+    .insert({
+      user_id: user.id, card_id,
+      condition: condition ?? "NM",
+      quantity: quantity ?? 1,
+      notes: notes || null,
+      image_url: image_url || null,
+      visibility: visibility ?? "public",
+    })
     .select()
     .single();
 
