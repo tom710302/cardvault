@@ -13,8 +13,7 @@ interface Profile {
 }
 interface CollectionItem {
   id: string; card_id: string; condition: string; quantity: number;
-  image_url: string | null;
-  cards: { id: string; name: string; game: string; rarity: string | null; image_url: string | null } | null;
+  image_url: string | null; cards: any;
 }
 interface Post {
   id: string; title: string; board: string; post_type: string;
