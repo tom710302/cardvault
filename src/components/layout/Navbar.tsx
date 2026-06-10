@@ -219,6 +219,12 @@ export function Navbar() {
                       <Shield className="w-4 h-4" /> 後台管理
                     </Link>
                   )}
+                  {profile?.role === "store_owner" && (
+                    <Link href="/my-store" onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-orange-400 hover:bg-white/5 transition-colors">
+                      🏪 我的店舖
+                    </Link>
+                  )}
                   <Link href="/profile" onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
                     <User className="w-4 h-4" /> 個人資料

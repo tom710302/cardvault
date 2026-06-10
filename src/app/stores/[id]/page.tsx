@@ -15,6 +15,10 @@ interface StoreEvent {
   id: string; title: string; description: string | null;
   event_date: string | null; image_url: string | null; is_active: boolean;
 }
+interface StoreProduct {
+  id: string; name: string; description: string | null; price: number | null;
+  stock: number; image_url: string | null; category: string | null;
+}
 
 const gameEmoji: Record<string, string> = {
   MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾", NFL: "🏈", WS: "🎴",
@@ -23,6 +27,7 @@ const gameEmoji: Record<string, string> = {
 export default function StoreDetailPage({ params }: { params: { id: string } }) {
   const [store, setStore] = useState<Store | null>(null);
   const [events, setEvents] = useState<StoreEvent[]>([]);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"about" | "products" | "events" | "contact">("about");
 
@@ -30,9 +35,10 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
     async function load() {
       const res = await fetch(`/api/stores/${params.id}`);
       if (res.ok) {
-        const { store, events } = await res.json();
+        const { store, events, products } = await res.json();
         setStore(store);
         setEvents(events);
+        setProducts(products);
       }
       setLoading(false);
     }
@@ -218,7 +224,38 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          {!store.games?.length && !store.products?.length && (
+          {/* Real Products from store_products table */}
+          {products.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">現售商品與庫存</h3>
+              <div className="space-y-2">
+                {products.map(p => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-xl shrink-0">📦</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-gray-200">{p.name}</span>
+                        {p.category && <span className="badge text-xs bg-gray-800 text-gray-400">{p.category}</span>}
+                      </div>
+                      {p.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{p.description}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      {p.price && <p className="text-sm font-bold text-brand-400">NT${p.price.toLocaleString()}</p>}
+                      <p className={`text-xs font-medium mt-0.5 ${p.stock === 0 ? "text-red-400" : p.stock <= 5 ? "text-yellow-400" : "text-green-400"}`}>
+                        {p.stock === 0 ? "已售完" : p.stock <= 5 ? `剩 ${p.stock} 件` : `庫存 ${p.stock}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!store.games?.length && !store.products?.length && products.length === 0 && (
             <p className="text-gray-500 text-sm">尚未填寫商品資訊。</p>
           )}
         </div>
