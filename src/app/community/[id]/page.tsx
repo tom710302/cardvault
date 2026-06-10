@@ -42,6 +42,8 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editImages, setEditImages] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -87,13 +89,21 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   }
 
   async function deletePost() {
-    if (!confirm("確定刪除這篇文章？刪除後無法恢復。")) return;
-    const res = await fetch(`/api/posts/${params.id}`, { method: "DELETE" });
-    if (res.ok) {
-      window.location.href = "/community";
-    } else {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/posts/${params.id}`, { method: "DELETE" });
       const body = await res.json().catch(() => ({}));
-      alert("刪除失敗：" + (body.error ?? res.status));
+      if (res.ok) {
+        window.location.replace("/community");
+      } else {
+        alert("刪除失敗：" + (body.error ?? `HTTP ${res.status}`));
+        setDeleting(false);
+        setConfirmDelete(false);
+      }
+    } catch (e) {
+      alert("網路錯誤，請再試一次");
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -202,10 +212,21 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                     className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors">
                     <Edit2 className="w-3 h-3" /> 編輯
                   </button>
-                  <button onClick={deletePost}
-                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
-                    <Trash2 className="w-3 h-3" /> 刪除文章
-                  </button>
+                  {!confirmDelete ? (
+                    <button onClick={() => setConfirmDelete(true)}
+                      className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
+                      <Trash2 className="w-3 h-3" /> 刪除
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-xs">
+                      <span className="text-gray-400">確定刪除？</span>
+                      <button onClick={deletePost} disabled={deleting}
+                        className="text-red-400 hover:text-red-300 font-medium disabled:opacity-50">
+                        {deleting ? "刪除中..." : "確定"}
+                      </button>
+                      <button onClick={() => setConfirmDelete(false)} className="text-gray-500 hover:text-gray-300">取消</button>
+                    </span>
+                  )}
                 </>
               )}
               <Link href={`/users/${post.profiles?.id}`} className="flex items-center gap-2 hover:text-gray-300 transition-colors">
