@@ -65,7 +65,8 @@ export default function MyStorePage() {
       const { data: store } = await supabase.from("stores").select("*").eq("id", profile.store_id).single();
       if (store) {
         setStoreInfo(store);
-        setInfoForm({ intro: store.intro ?? "", hours: store.hours ?? "", phone: store.phone ?? "", website: store.website ?? "", image_url: store.image_url ?? "", games: store.games ?? [], products_tags: (store.products ?? []).join(", ") });
+        // intro 若為空則以 description 補充（向下相容舊資料）
+        setInfoForm({ intro: store.intro ?? store.description ?? "", hours: store.hours ?? "", phone: store.phone ?? "", website: store.website ?? "", image_url: store.image_url ?? "", games: store.games ?? [], products_tags: (store.products ?? []).join(", ") });
       }
 
       setLoading(false);
@@ -145,6 +146,7 @@ export default function MyStorePage() {
     setInfoSaving(true);
     const { error } = await supabase.from("stores").update({
       intro: infoForm.intro || null,
+      description: infoForm.intro || null,  // 同步更新 description 確保前台顯示
       hours: infoForm.hours || null,
       phone: infoForm.phone || null,
       website: infoForm.website || null,
