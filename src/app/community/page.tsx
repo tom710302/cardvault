@@ -260,6 +260,21 @@ export default function CommunityPage() {
                   </div>
                   <h2 className="font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">{post.title}</h2>
                   <p className="text-sm text-gray-500 line-clamp-1">{post.content}</p>
+                  {/* 圖片縮圖預覽 */}
+                  {(post as any).image_urls?.length > 0 && (
+                    <div className="flex gap-1.5 mt-1">
+                      {(post as any).image_urls.slice(0, 3).map((url: string, i: number) => (
+                        <div key={i} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {(post as any).image_urls.length > 3 && (
+                        <div className="w-14 h-14 rounded-lg bg-gray-800 flex items-center justify-center text-xs text-gray-400 shrink-0 border border-white/10">
+                          +{(post as any).image_urls.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <span className="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-white text-[10px] font-bold">
