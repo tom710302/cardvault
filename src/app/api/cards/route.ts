@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("cards")
-    .insert({ name, name_en, game, card_type: card_type ?? "tcg", set_name, set_code, rarity, description, image_url: image_url || null, is_active: true })
+    .insert({ name, name_en, game, card_type: card_type ?? "tcg", set_name, set_code, rarity, description, image_url: image_url || null, is_active: true, created_by: user.id })
     .select()
     .single();
 

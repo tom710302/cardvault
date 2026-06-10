@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Heart, BookmarkPlus, Share2, TrendingUp, MessageSquare, ExternalLink, X } from "lucide-react";
+import { ArrowLeft, Heart, BookmarkPlus, Share2, TrendingUp, MessageSquare, ExternalLink, X, Edit2, Save } from "lucide-react";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 const PriceChart = dynamic(() => import("@/components/ui/PriceChart").then(m => m.PriceChart), { ssr: false });
 
@@ -17,6 +18,7 @@ interface Card {
   id: string; name: string; name_en: string | null; game: string; card_type: string;
   set_name: string | null; set_code: string | null; rarity: string | null;
   image_url: string | null; description: string | null; is_active: boolean;
+  created_by: string | null;
 }
 
 interface PriceReport {
@@ -32,6 +34,10 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", name_en: "", game: "", card_type: "", set_name: "", set_code: "", rarity: "", description: "", image_url: "" });
+  const [editSaving, setEditSaving] = useState(false);
   const [showPriceReport, setShowPriceReport] = useState(false);
   const [priceForm, setPriceForm] = useState({ price: "", condition: "NM", source_url: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -39,7 +45,13 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        supabase.from("profiles").select("role").eq("id", user.id).single()
+          .then(({ data }) => setUserProfile(data));
+      }
+    });
     fetchCard();
   }, [params.id]);
 
@@ -49,13 +61,41 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
 
   async function fetchCard() {
     const res = await fetch(`/api/cards/${params.id}`);
-    if (res.ok) { const { card } = await res.json(); setCard(card); }
-    else {
-      // fallback: direct Supabase
+    if (res.ok) {
+      const { card } = await res.json();
+      setCard(card);
+      setEditForm({
+        name: card.name ?? "", name_en: card.name_en ?? "",
+        game: card.game ?? "", card_type: card.card_type ?? "tcg",
+        set_name: card.set_name ?? "", set_code: card.set_code ?? "",
+        rarity: card.rarity ?? "", description: card.description ?? "",
+        image_url: card.image_url ?? "",
+      });
+    } else {
       const { data } = await supabase.from("cards").select("*").eq("id", params.id).single();
       setCard(data);
     }
     setLoading(false);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    setEditSaving(true);
+    const res = await fetch(`/api/cards/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    if (res.ok) {
+      const { card } = await res.json();
+      setCard(card);
+      setShowEdit(false);
+      alert("✅ 卡牌資料已更新！");
+    } else {
+      const { error } = await res.json();
+      alert(error ?? "更新失敗");
+    }
+    setEditSaving(false);
   }
 
   async function fetchPriceReports() {
@@ -111,8 +151,92 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
     </div>
   );
 
+  const canEdit = user && card && (card.created_by === user.id || userProfile?.role === "admin");
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
+          <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-brand-400" /> 編輯卡牌資料
+              </h2>
+              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={saveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">卡牌名稱 *</label>
+                  <input value={editForm.name} onChange={e => setEditForm(v => ({ ...v, name: e.target.value }))} required
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">英文名稱</label>
+                  <input value={editForm.name_en} onChange={e => setEditForm(v => ({ ...v, name_en: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">遊戲 *</label>
+                  <select value={editForm.game} onChange={e => setEditForm(v => ({ ...v, game: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                    {["MTG","寶可夢","遊戲王","NBA","MLB","NFL","WS","其他"].map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">類型</label>
+                  <select value={editForm.card_type} onChange={e => setEditForm(v => ({ ...v, card_type: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                    <option value="tcg">TCG 集換式</option>
+                    <option value="sports">運動球員卡</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">系列名稱</label>
+                  <input value={editForm.set_name} onChange={e => setEditForm(v => ({ ...v, set_name: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">稀有度</label>
+                  <input value={editForm.rarity} onChange={e => setEditForm(v => ({ ...v, rarity: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">描述</label>
+                <textarea value={editForm.description} onChange={e => setEditForm(v => ({ ...v, description: e.target.value }))} rows={3}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">卡牌圖片</label>
+                <ImageUpload
+                  folder="cards"
+                  label="更換卡牌圖片"
+                  hint="JPG、PNG、WebP，最大 5MB"
+                  currentUrl={editForm.image_url}
+                  className="aspect-[5/3]"
+                  onUpload={(url) => setEditForm(v => ({ ...v, image_url: url }))}
+                  onRemove={() => setEditForm(v => ({ ...v, image_url: "" }))}
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-1">
+                <button type="button" onClick={() => setShowEdit(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                <button type="submit" disabled={editSaving}
+                  className="btn-primary text-sm px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+                  <Save className="w-4 h-4" /> {editSaving ? "儲存中..." : "儲存變更"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Price Report Modal */}
       {showPriceReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
@@ -191,7 +315,15 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
               <span className="badge text-xs bg-gray-800 text-gray-400">{card.game}</span>
               <span className="badge text-xs bg-gray-800 text-gray-400">{card.card_type === "sports" ? "運動卡" : "TCG"}</span>
             </div>
-            <h1 className="text-3xl font-bold text-white">{card.name}</h1>
+            <div className="flex items-start gap-3">
+              <h1 className="text-3xl font-bold text-white flex-1">{card.name}</h1>
+              {canEdit && (
+                <button onClick={() => setShowEdit(true)}
+                  className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 bg-brand-900/30 hover:bg-brand-900/50 px-3 py-1.5 rounded-lg transition-colors shrink-0 mt-1">
+                  <Edit2 className="w-3.5 h-3.5" /> 編輯
+                </button>
+              )}
+            </div>
             {card.name_en && <div className="text-gray-400 text-sm mt-1">{card.name_en}</div>}
           </div>
 
