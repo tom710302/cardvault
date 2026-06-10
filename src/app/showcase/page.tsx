@@ -50,7 +50,6 @@ export default function ShowcasePage() {
     { id: "all", label: "全部展示" },
     { id: "tcg", label: "TCG 卡牌" },
     { id: "sports", label: "運動卡" },
-    { id: "top", label: "精選收藏家" },
   ];
 
   const filteredUsers = filter === "top"
