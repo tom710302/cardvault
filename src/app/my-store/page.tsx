@@ -40,7 +40,7 @@ export default function MyStorePage() {
 
   // Event form
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ title: "", description: "", event_date: "", image_url: "" });
+  const [eventForm, setEventForm] = useState({ title: "", description: "", event_date: "", end_date: "", location: "", registration_url: "", registration_info: "", image_url: "", image_urls: [] as string[] });
   const [eventSubmitting, setEventSubmitting] = useState(false);
 
   // Store info form
@@ -127,7 +127,7 @@ export default function MyStorePage() {
     const res = await fetch("/api/my-store/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(eventForm) });
     if (res.ok) {
       setShowAddEvent(false);
-      setEventForm({ title: "", description: "", event_date: "", image_url: "" });
+      setEventForm({ title: "", description: "", event_date: "", end_date: "", location: "", registration_url: "", registration_info: "", image_url: "", image_urls: [] });
       fetchEvents();
     } else { const { error } = await res.json(); alert(error ?? "新增失敗"); }
     setEventSubmitting(false);
@@ -337,23 +337,65 @@ export default function MyStorePage() {
                       placeholder="例如：寶可夢 SV8 預購活動"
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">開始日期</label>
+                      <input type="date" value={eventForm.event_date} onChange={e => setEventForm(v => ({ ...v, event_date: e.target.value }))}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">結束日期</label>
+                      <input type="date" value={eventForm.end_date} onChange={e => setEventForm(v => ({ ...v, end_date: e.target.value }))}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                  </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">活動日期</label>
-                    <input type="date" value={eventForm.event_date} onChange={e => setEventForm(v => ({ ...v, event_date: e.target.value }))}
+                    <label className="text-xs text-gray-400 mb-1 block">活動地點</label>
+                    <input value={eventForm.location} onChange={e => setEventForm(v => ({ ...v, location: e.target.value }))}
+                      placeholder="例如：店內二樓活動區 / 線上報名"
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 mb-1 block">活動說明</label>
                     <textarea value={eventForm.description} onChange={e => setEventForm(v => ({ ...v, description: e.target.value }))} rows={4}
-                      placeholder="詳細說明活動內容、時間、地點、參加方式..."
+                      placeholder="詳細說明活動內容、規則、獎品..."
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">活動圖片</label>
+                    <label className="text-xs text-gray-400 mb-1 block">報名方式說明</label>
+                    <textarea value={eventForm.registration_info} onChange={e => setEventForm(v => ({ ...v, registration_info: e.target.value }))} rows={3}
+                      placeholder="例如：現場報名、限額50人、費用$300..."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">報名連結（選填）</label>
+                    <input type="url" value={eventForm.registration_url} onChange={e => setEventForm(v => ({ ...v, registration_url: e.target.value }))}
+                      placeholder="https://forms.gle/..."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">主視覺圖片</label>
                     <ImageUpload folder="events" label="上傳活動海報" hint="JPG、PNG，最大 5MB"
                       currentUrl={eventForm.image_url} className="aspect-video"
                       onUpload={url => setEventForm(v => ({ ...v, image_url: url }))}
                       onRemove={() => setEventForm(v => ({ ...v, image_url: "" }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">其他活動圖片（最多 6 張）</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {eventForm.image_urls.map((url, i) => (
+                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setEventForm(v => ({ ...v, image_urls: v.image_urls.filter((_, idx) => idx !== i) }))}
+                            className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white text-xs">✕</button>
+                        </div>
+                      ))}
+                      {eventForm.image_urls.length < 6 && (
+                        <ImageUpload folder="events" label="+" hint=""
+                          className="aspect-square"
+                          onUpload={url => setEventForm(v => ({ ...v, image_urls: [...v.image_urls, url] }))} />
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button type="button" onClick={() => setShowAddEvent(false)} className="btn-secondary text-sm px-4 py-2">取消</button>

@@ -25,11 +25,17 @@ export async function POST(request: NextRequest) {
   if (!owner) return NextResponse.json({ error: "無權限" }, { status: 403 });
 
   const supabase = createClient();
-  const { title, description, event_date, image_url } = await request.json();
+  const { title, description, event_date, end_date, location, registration_url, registration_info, image_url, image_urls } = await request.json();
   if (!title) return NextResponse.json({ error: "活動名稱為必填" }, { status: 400 });
 
   const { data, error } = await supabase.from("store_events")
-    .insert({ store_id: owner.profile.store_id!, title, description, event_date: event_date || null, image_url: image_url || null })
+    .insert({
+      store_id: owner.profile.store_id!, title, description,
+      event_date: event_date || null, end_date: end_date || null,
+      location: location || null, registration_url: registration_url || null,
+      registration_info: registration_info || null,
+      image_url: image_url || null, image_urls: image_urls?.length ? image_urls : null,
+    })
     .select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

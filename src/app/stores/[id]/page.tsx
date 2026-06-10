@@ -312,9 +312,12 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           ) : (
             <div className="space-y-4">
               {events.map(event => (
-                <div key={event.id} className="glass rounded-2xl overflow-hidden">
+                <Link key={event.id} href={`/stores/${params.id}/events/${event.id}`}
+                  className="glass rounded-2xl overflow-hidden card-hover group block">
                   {event.image_url && (
-                    <img src={event.image_url} alt={event.title} className="w-full h-48 object-cover" />
+                    <div className="h-48 overflow-hidden">
+                      <img src={event.image_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
                   )}
                   <div className="p-5 space-y-2">
                     {event.event_date && (
@@ -323,12 +326,22 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
                         {new Date(event.event_date).toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric" })}
                       </div>
                     )}
-                    <h3 className="text-lg font-bold text-white">{event.title}</h3>
+                    <h3 className="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">{event.title}</h3>
                     {event.description && (
-                      <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{event.description}</p>
+                      <p className="text-gray-400 text-sm line-clamp-2">{event.description}</p>
                     )}
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex gap-2 flex-wrap">
+                        {(event as any).location && (
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <MapPin className="w-3 h-3" /> {(event as any).location}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-brand-400 group-hover:text-brand-300">查看詳情 →</span>
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
