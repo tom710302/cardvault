@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/community", label: "社群討論" },
   { href: "/showcase", label: "收藏展示" },
   { href: "/collection", label: "我的收藏" },
+  { href: "/stores", label: "店舖查詢" },
 ];
 
 export function Navbar() {
