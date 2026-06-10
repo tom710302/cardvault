@@ -126,75 +126,65 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
 
       </div>
 
-      {/* Games Tags - 移到 overflow-hidden 外面 */}
+      {/* Games Tags + 分類展開 */}
       {store.games?.length > 0 && (
-        <div className="relative">
+        <div className="space-y-3">
+          {/* 遊戲按鈕列 */}
           <div className="flex flex-wrap gap-2">
             {store.games.map(g => (
-              <button key={g} onClick={() => {
-                if (selectedGame === g && showCategoryPopup) {
-                  setShowCategoryPopup(false);
-                  setSelectedGame(null);
-                } else {
-                  setSelectedGame(g);
+              <button
+                key={g}
+                type="button"
+                onClick={() => {
+                  const next = selectedGame === g ? null : g;
+                  setSelectedGame(next);
                   setSelectedCategory(null);
-                  setShowCategoryPopup(true);
-                  setTab("products");
-                }
-              }}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                  if (next) setTab("products");
+                }}
+                className={[
+                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border",
                   selectedGame === g
-                    ? "bg-brand-600 text-white border-brand-500 shadow-lg shadow-brand-500/20"
+                    ? "bg-brand-600 text-white border-brand-500"
                     : "bg-brand-900/30 text-brand-300 border-brand-700/30 hover:bg-brand-600/30"
-                }`}>
+                ].join(" ")}
+              >
                 {gameEmoji[g] ?? "🃏"} {g}
-                <span className="text-xs opacity-60">▾</span>
+                <span className="text-xs opacity-60">{selectedGame === g ? "▴" : "▾"}</span>
               </button>
             ))}
           </div>
 
-          {/* Category Popup */}
-          {showCategoryPopup && selectedGame && (
-            <>
-              {/* 點外面關閉 */}
-              <div className="fixed inset-0 z-40" onClick={() => setShowCategoryPopup(false)} />
-              <div className="absolute left-0 top-12 z-50 glass rounded-2xl shadow-2xl p-4 min-w-52 border border-white/15">
-                <div className="text-xs text-gray-500 mb-3 flex items-center gap-1.5">
-                  <span>{gameEmoji[selectedGame]}</span>
-                  <span className="font-medium text-gray-300">{selectedGame}</span>
-                  <span>· 選擇分類</span>
-                </div>
-                <div className="space-y-1">
-                  <button onClick={() => { setSelectedCategory(null); setShowCategoryPopup(false); }}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${!selectedCategory ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
-                    🃏 全部商品
+          {/* 分類展開列 */}
+          {selectedGame && (
+            <div className="glass rounded-xl p-3 border border-brand-700/30">
+              <p className="text-xs text-gray-500 mb-2">
+                {gameEmoji[selectedGame]} {selectedGame} · 選擇分類
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { cat: null, label: "🃏 全部", },
+                  { cat: "盒裝", label: "📦 盒裝" },
+                  { cat: "卡包", label: "🎴 卡包" },
+                  { cat: "卡套", label: "🛡️ 卡套" },
+                  { cat: "週邊商品", label: "⭐ 週邊商品" },
+                  { cat: "單卡", label: "✨ 單卡" },
+                  { cat: "其他", label: "📋 其他" },
+                ].map(({ cat, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={[
+                      "px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                      selectedCategory === cat
+                        ? "bg-brand-600 text-white border-brand-500"
+                        : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"
+                    ].join(" ")}
+                  >
+                    {label}
                   </button>
-                  {[
-                    { cat: "盒裝", icon: "📦" },
-                    { cat: "卡包", icon: "🎴" },
-                    { cat: "卡套", icon: "🛡️" },
-                    { cat: "週邊商品", icon: "⭐" },
-                    { cat: "單卡", icon: "✨" },
-                    { cat: "其他", icon: "📋" },
-                  ].map(({ cat, icon }) => (
-                    <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryPopup(false); }}
-                      className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${selectedCategory === cat ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
-                      {icon} {cat}
-                    </button>
-                  ))}
-                </div>
+                ))}
               </div>
-            </>
-          )}
-
-          {/* Active Filter */}
-          {(selectedGame || selectedCategory) && (
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-xs text-gray-500">目前篩選：</span>
-              {selectedGame && <span className="badge text-xs text-brand-300 bg-brand-900/30">{gameEmoji[selectedGame]} {selectedGame}</span>}
-              {selectedCategory && <span className="badge text-xs text-brand-300 bg-brand-900/30">{selectedCategory}</span>}
-              <button onClick={() => { setSelectedGame(null); setSelectedCategory(null); }}
-                className="text-xs text-gray-500 hover:text-red-400 transition-colors">✕ 清除篩選</button>
             </div>
           )}
         </div>

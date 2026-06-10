@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "portfolio",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "/Users/andy/portfolio"],
+      "port": 8080
+    },
+    {
+      "name": "cardvault-dev",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/andy/cardvault/node_modules/.bin/next", "dev"],
+      "cwd": "/Users/andy/cardvault",
+      "port": 3000
+    }
+  ]
+}
