@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X, ImageIcon } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useRouter } from "next/navigation";
 
 const typeColor: Record<string, string> = {
   discussion: "text-blue-400 bg-blue-900/30",
@@ -39,6 +41,8 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -77,9 +81,16 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
     const res = await fetch(`/api/posts/${params.id}/edit`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editTitle, content: editContent }),
+      body: JSON.stringify({ title: editTitle, content: editContent, image_urls: editImages }),
     });
     if (res.ok) { setEditing(false); fetchPost(); }
+  }
+
+  async function deletePost() {
+    if (!confirm("確定刪除這篇文章？刪除後無法恢復。")) return;
+    const res = await fetch(`/api/posts/${params.id}`, { method: "DELETE" });
+    if (res.ok) { router.push("/community"); }
+    else alert("刪除失敗");
   }
 
   async function submitComment(e: React.FormEvent) {
@@ -150,6 +161,28 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-lg font-bold text-white outline-none focus:ring-2 focus:ring-brand-500" />
                 <textarea value={editContent} onChange={e => setEditContent(e.target.value)} required rows={6}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                {/* 圖片編輯 */}
+                <div>
+                  <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" /> 圖片（最多 4 張）
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {editImages.map((url, i) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setEditImages(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {editImages.length < 4 && (
+                      <ImageUpload folder="posts" label="+" hint=""
+                        className="aspect-square"
+                        onUpload={url => setEditImages(prev => [...prev, url])} />
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button type="submit" className="btn-primary text-sm px-4 py-2">儲存</button>
                   <button type="button" onClick={() => setEditing(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
@@ -160,10 +193,16 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             )}
             <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
               {user?.id === post.author_id && !editing && (
-                <button onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); }}
-                  className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300">
-                  <Edit2 className="w-3 h-3" /> 編輯文章
-                </button>
+                <>
+                  <button onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); setEditImages(post.image_urls ?? []); }}
+                    className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors">
+                    <Edit2 className="w-3 h-3" /> 編輯
+                  </button>
+                  <button onClick={deletePost}
+                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <Trash2 className="w-3 h-3" /> 刪除文章
+                  </button>
+                </>
               )}
               <Link href={`/users/${post.profiles?.id}`} className="flex items-center gap-2 hover:text-gray-300 transition-colors">
                 <div className="w-7 h-7 rounded-full bg-brand-700 flex items-center justify-center text-white text-xs font-bold">
