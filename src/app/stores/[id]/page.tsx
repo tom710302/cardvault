@@ -284,7 +284,8 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           {/* Real Products from store_products table */}
           {products.length > 0 && (() => {
             const filtered = products.filter(p => {
-              const matchGame = !selectedGame || (p as any).game === selectedGame;
+              // game 未設定的商品（舊資料）也納入顯示
+              const matchGame = !selectedGame || (p as any).game === selectedGame || !(p as any).game;
               const matchCat = !selectedCategory || p.category === selectedCategory;
               return matchGame && matchCat;
             });
