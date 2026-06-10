@@ -8,7 +8,8 @@ import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface CollectionItem {
-  id: string; condition: string; quantity: number; notes: string | null; created_at: string;
+  id: string; card_id: string; condition: string; quantity: number; notes: string | null;
+  image_url: string | null; visibility: string; created_at: string;
   cards: { id: string; name: string; name_en: string | null; game: string; set_name: string | null; rarity: string | null; image_url: string | null } | null;
 }
 
@@ -249,9 +250,9 @@ export default function CollectionPage() {
               {/* 點擊跳到卡牌詳情 */}
               <Link href={`/cards/${item.card_id}`} className="block">
                 <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
-                  {(item as any).image_url || item.cards?.image_url ? (
+                  {item.image_url || item.cards?.image_url ? (
                     <img
-                      src={(item as any).image_url || item.cards?.image_url}
+                      src={item.image_url || item.cards?.image_url}
                       alt={item.cards?.name ?? ""}
                       className="w-full h-full object-cover"
                     />
@@ -281,8 +282,8 @@ export default function CollectionPage() {
           {filtered.map(item => (
             <div key={item.id} className="glass rounded-xl p-4 flex items-center gap-4 group">
               <Link href={`/cards/${item.card_id}`} className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
-                {(item as any).image_url || item.cards?.image_url ? (
-                  <img src={(item as any).image_url || item.cards?.image_url} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
+                {item.image_url || item.cards?.image_url ? (
+                  <img src={item.image_url || item.cards?.image_url} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
                 ) : <span>🃏</span>}
               </Link>
               <div className="flex-1 min-w-0">
