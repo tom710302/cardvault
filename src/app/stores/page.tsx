@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Search, MapPin, Phone, Clock, Globe, CheckCircle, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -127,7 +128,8 @@ export default function StoresPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stores.map(store => (
             <div key={store.id} className="glass rounded-2xl overflow-hidden card-hover group">
-              {/* Store Image */}
+              {/* Store Image - 點擊進入店舖主頁 */}
+              <Link href={`/stores/${store.id}`} className="block">
               <div className="h-40 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
                 {store.image_url ? (
                   <img src={store.image_url} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -148,11 +150,14 @@ export default function StoresPage() {
                   {store.city}
                 </div>
               </div>
+              </Link>
 
               {/* Store Info */}
               <div className="p-4 space-y-3">
                 <div>
-                  <h3 className="font-bold text-white text-lg leading-tight">{store.name}</h3>
+                  <Link href={`/stores/${store.id}`}>
+                    <h3 className="font-bold text-white text-lg leading-tight hover:text-brand-300 transition-colors">{store.name}</h3>
+                  </Link>
                   {store.description && (
                     <p className="text-gray-500 text-xs mt-1 line-clamp-2">{store.description}</p>
                   )}
