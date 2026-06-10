@@ -110,8 +110,12 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ card_id: params.id, condition: "NM", quantity: 1 }),
     });
-    if (res.ok) { setSaved(true); alert("已加入收藏庫！"); }
-    else { const { error } = await res.json(); alert(error ?? "新增失敗"); }
+    if (res.ok) {
+      window.location.href = "/collection";
+    } else {
+      const { error } = await res.json();
+      alert(error ?? "新增失敗");
+    }
   }
 
   async function submitPriceReport(e: React.FormEvent) {
@@ -293,13 +297,9 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setLiked(v => !v)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${liked ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"}`}>
-              <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} /> {liked ? "已收藏" : "收藏"}
-            </button>
             <button onClick={addToCollection}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${saved ? "bg-brand-500/20 text-brand-400 border-brand-500/30" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"}`}>
-              <BookmarkPlus className="w-4 h-4" /> {saved ? "已加入" : "加入收藏庫"}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-brand-600/20 text-brand-400 border-brand-500/30 hover:bg-brand-600/30">
+              <Heart className="w-4 h-4" /> 收藏
             </button>
             <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("連結已複製！"); }}
               className="px-3 py-2.5 rounded-xl bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors">
