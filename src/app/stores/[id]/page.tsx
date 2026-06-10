@@ -124,9 +124,12 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           )}
         </div>
 
-        {/* Games Tags - 可點擊彈出分類 */}
-        {store.games?.length > 0 && (
-          <div className="px-4 py-3 flex flex-wrap gap-2 relative">
+      </div>
+
+      {/* Games Tags - 移到 overflow-hidden 外面 */}
+      {store.games?.length > 0 && (
+        <div className="relative">
+          <div className="flex flex-wrap gap-2">
             {store.games.map(g => (
               <button key={g} onClick={() => {
                 if (selectedGame === g && showCategoryPopup) {
@@ -139,47 +142,63 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
                   setTab("products");
                 }
               }}
-                className={`badge text-sm px-3 py-1.5 transition-all cursor-pointer border ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                   selectedGame === g
-                    ? "bg-brand-600 text-white border-brand-500"
+                    ? "bg-brand-600 text-white border-brand-500 shadow-lg shadow-brand-500/20"
                     : "bg-brand-900/30 text-brand-300 border-brand-700/30 hover:bg-brand-600/30"
                 }`}>
                 {gameEmoji[g] ?? "🃏"} {g}
-                <span className="ml-1 text-xs opacity-70">▾</span>
+                <span className="text-xs opacity-60">▾</span>
               </button>
             ))}
+          </div>
 
-            {/* Category Popup */}
-            {showCategoryPopup && selectedGame && (
-              <div className="absolute left-4 top-12 z-20 glass rounded-xl shadow-2xl p-3 min-w-48 border border-white/15">
-                <div className="text-xs text-gray-500 mb-2 px-1">{gameEmoji[selectedGame]} {selectedGame} · 選擇分類</div>
+          {/* Category Popup */}
+          {showCategoryPopup && selectedGame && (
+            <>
+              {/* 點外面關閉 */}
+              <div className="fixed inset-0 z-40" onClick={() => setShowCategoryPopup(false)} />
+              <div className="absolute left-0 top-12 z-50 glass rounded-2xl shadow-2xl p-4 min-w-52 border border-white/15">
+                <div className="text-xs text-gray-500 mb-3 flex items-center gap-1.5">
+                  <span>{gameEmoji[selectedGame]}</span>
+                  <span className="font-medium text-gray-300">{selectedGame}</span>
+                  <span>· 選擇分類</span>
+                </div>
                 <div className="space-y-1">
                   <button onClick={() => { setSelectedCategory(null); setShowCategoryPopup(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!selectedCategory ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
-                    全部商品
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${!selectedCategory ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
+                    🃏 全部商品
                   </button>
-                  {["盒裝", "卡包", "卡套", "週邊商品", "單卡", "其他"].map(cat => (
+                  {[
+                    { cat: "盒裝", icon: "📦" },
+                    { cat: "卡包", icon: "🎴" },
+                    { cat: "卡套", icon: "🛡️" },
+                    { cat: "週邊商品", icon: "⭐" },
+                    { cat: "單卡", icon: "✨" },
+                    { cat: "其他", icon: "📋" },
+                  ].map(({ cat, icon }) => (
                     <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryPopup(false); }}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
-                      {cat}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${selectedCategory === cat ? "bg-brand-600 text-white" : "text-gray-300 hover:bg-white/10"}`}>
+                      {icon} {cat}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
 
-        {/* Active Filter Badge */}
-        {(selectedGame || selectedCategory) && (
-          <div className="px-4 pb-2 flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500">篩選：</span>
-            {selectedGame && <span className="badge text-xs text-brand-300 bg-brand-900/30">{gameEmoji[selectedGame]} {selectedGame}</span>}
-            {selectedCategory && <span className="badge text-xs text-brand-300 bg-brand-900/30">{selectedCategory}</span>}
-            <button onClick={() => { setSelectedGame(null); setSelectedCategory(null); }} className="text-xs text-gray-500 hover:text-gray-300 ml-1">✕ 清除</button>
-          </div>
-        )}
-      </div>
+          {/* Active Filter */}
+          {(selectedGame || selectedCategory) && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-xs text-gray-500">目前篩選：</span>
+              {selectedGame && <span className="badge text-xs text-brand-300 bg-brand-900/30">{gameEmoji[selectedGame]} {selectedGame}</span>}
+              {selectedCategory && <span className="badge text-xs text-brand-300 bg-brand-900/30">{selectedCategory}</span>}
+              <button onClick={() => { setSelectedGame(null); setSelectedCategory(null); }}
+                className="text-xs text-gray-500 hover:text-red-400 transition-colors">✕ 清除篩選</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-white/10">
