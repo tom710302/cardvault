@@ -13,8 +13,8 @@ const navLinks = [
   { href: "/cards", label: "卡牌資料庫" },
   { href: "/community", label: "社群討論" },
   { href: "/showcase", label: "收藏展示" },
-  { href: "/collection", label: "我的收藏" },
   { href: "/stores", label: "店舖查詢" },
+  { href: "/my-page", label: "我的主頁" },
 ];
 
 export function Navbar() {
