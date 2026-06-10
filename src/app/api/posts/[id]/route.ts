@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -21,12 +21,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
 
-  const { data: post } = await supabase.from("posts").select("author_id").eq("id", params.id).single();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  // 用 admin client 查詢和更新，繞過 RLS
+  const admin = createAdminClient();
+  const { data: post } = await admin.from("posts").select("author_id").eq("id", params.id).single();
+  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).single();
 
   if (post?.author_id !== user.id && !["admin", "moderator"].includes(profile?.role ?? "")) {
     return NextResponse.json({ error: "無權限" }, { status: 403 });
   }
-  await supabase.from("posts").update({ is_deleted: true }).eq("id", params.id);
+
+  const { error } = await admin.from("posts").update({ is_deleted: true }).eq("id", params.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
