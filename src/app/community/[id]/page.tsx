@@ -89,8 +89,12 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   async function deletePost() {
     if (!confirm("確定刪除這篇文章？刪除後無法恢復。")) return;
     const res = await fetch(`/api/posts/${params.id}`, { method: "DELETE" });
-    if (res.ok) { router.push("/community"); }
-    else alert("刪除失敗");
+    if (res.ok) {
+      window.location.href = "/community";
+    } else {
+      const body = await res.json().catch(() => ({}));
+      alert("刪除失敗：" + (body.error ?? res.status));
+    }
   }
 
   async function submitComment(e: React.FormEvent) {
