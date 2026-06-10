@@ -33,6 +33,7 @@ export default function MyPage() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({ username: "", display_name: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const supabase = createClient();
   const router = useRouter();
 
@@ -55,6 +56,14 @@ export default function MyPage() {
     }
     load();
   }, []);
+
+  async function handleAvatarUpload(url: string) {
+    if (!profile) return;
+    setUploadingAvatar(true);
+    const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", profile.id);
+    if (!error) setProfile(p => p ? { ...p, avatar_url: url } : p);
+    setUploadingAvatar(false);
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -130,13 +139,30 @@ export default function MyPage() {
       {/* IG-style Profile Header */}
       <div className="px-4 pt-8 pb-4 space-y-5">
         <div className="flex items-start gap-6">
-          {/* Avatar */}
-          <div className="relative shrink-0">
+          {/* Avatar - 可點擊上傳 */}
+          <div className="relative shrink-0 group/avatar">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden">
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
                 : profile.username?.[0]?.toUpperCase() ?? "?"}
             </div>
+            {/* Upload overlay */}
+            <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
+              {uploadingAvatar
+                ? <span className="text-white text-xs">上傳中...</span>
+                : <Camera className="w-6 h-6 text-white" />}
+              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("folder", "avatars");
+                setUploadingAvatar(true);
+                const res = await fetch("/api/upload", { method: "POST", body: formData });
+                if (res.ok) { const { url } = await res.json(); await handleAvatarUpload(url); }
+                setUploadingAvatar(false);
+              }} />
+            </label>
           </div>
 
           {/* Stats */}

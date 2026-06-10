@@ -176,7 +176,9 @@ export default function ShowcasePage() {
                   <span className="flex items-center gap-1">
                     <Package className="w-3 h-3" /> {user.collection_count} 張
                   </span>
-                  <span className="ml-auto text-brand-400 hover:text-brand-300">查看收藏 →</span>
+                  <span className="ml-auto text-brand-400 group-hover:text-brand-300 font-medium">
+                    查看個人主頁 →
+                  </span>
                 </div>
               </div>
             </Link>
