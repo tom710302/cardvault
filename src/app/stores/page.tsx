@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, MapPin, Phone, Clock, Globe, Plus, X, CheckCircle, ExternalLink, Navigation } from "lucide-react";
+import { Search, MapPin, Phone, Clock, Globe, CheckCircle, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface Store {
   id: string; name: string; address: string; city: string;
@@ -23,18 +22,7 @@ export default function StoresPage() {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("全部");
   const [game, setGame] = useState("全部");
-  const [showAdd, setShowAdd] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: "", address: "", city: "台北市", phone: "", website: "",
-    hours: "", description: "", image_url: "", games: [] as string[],
-  });
   const supabase = createClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-  }, []);
 
   const fetchStores = useCallback(async () => {
     setLoading(true);
@@ -52,34 +40,6 @@ export default function StoresPage() {
     return () => clearTimeout(t);
   }, [fetchStores]);
 
-  function toggleGame(g: string) {
-    setForm(v => ({
-      ...v,
-      games: v.games.includes(g) ? v.games.filter(x => x !== g) : [...v.games, g],
-    }));
-  }
-
-  async function submitStore(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) { window.location.href = "/auth/login"; return; }
-    setSubmitting(true);
-    const res = await fetch("/api/stores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowAdd(false);
-      setForm({ name: "", address: "", city: "台北市", phone: "", website: "", hours: "", description: "", image_url: "", games: [] });
-      fetchStores();
-      alert("✅ 店舖已提交！管理員審核後會顯示驗證標記。");
-    } else {
-      const { error } = await res.json();
-      alert(error ?? "提交失敗");
-    }
-    setSubmitting(false);
-  }
-
   function openGoogleMaps(store: Store) {
     const query = encodeURIComponent(`${store.name} ${store.address}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
@@ -92,108 +52,12 @@ export default function StoresPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      {/* Add Store Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
-          <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-brand-400" /> 新增卡牌店
-              </h2>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <p className="text-xs text-gray-500">提交後由管理員審核，通過後會顯示驗證標記 ✓</p>
-            <form onSubmit={submitStore} className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">店舖名稱 *</label>
-                <input value={form.name} onChange={e => setForm(v => ({ ...v, name: e.target.value }))} required
-                  placeholder="例如：卡牌王國台北店"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-400 mb-1 block">地址 *</label>
-                  <input value={form.address} onChange={e => setForm(v => ({ ...v, address: e.target.value }))} required
-                    placeholder="例如：中山區南京東路二段100號"
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">城市 *</label>
-                  <select value={form.city} onChange={e => setForm(v => ({ ...v, city: e.target.value }))}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100">
-                    {cities.filter(c => c !== "全部").map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">電話</label>
-                  <input value={form.phone} onChange={e => setForm(v => ({ ...v, phone: e.target.value }))}
-                    placeholder="02-xxxx-xxxx"
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">網站</label>
-                  <input value={form.website} onChange={e => setForm(v => ({ ...v, website: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">營業時間</label>
-                <input value={form.hours} onChange={e => setForm(v => ({ ...v, hours: e.target.value }))}
-                  placeholder="例如：週一至週日 11:00-21:00"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">販售卡牌種類</label>
-                <div className="flex flex-wrap gap-2">
-                  {gameOptions.filter(g => g !== "全部").map(g => (
-                    <button key={g} type="button" onClick={() => toggleGame(g)}
-                      className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-                        form.games.includes(g) ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"
-                      )}>
-                      {gameEmoji[g] ?? ""} {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">店舖簡介（選填）</label>
-                <textarea value={form.description} onChange={e => setForm(v => ({ ...v, description: e.target.value }))} rows={2}
-                  placeholder="介紹店舖特色、服務..."
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">店舖照片（選填）</label>
-                <ImageUpload folder="stores" label="上傳店舖照片" hint="JPG、PNG，最大 5MB"
-                  currentUrl={form.image_url} className="aspect-video"
-                  onUpload={url => setForm(v => ({ ...v, image_url: url }))}
-                  onRemove={() => setForm(v => ({ ...v, image_url: "" }))} />
-              </div>
-              <div className="flex gap-3 justify-end pt-1">
-                <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
-                <button type="submit" disabled={submitting} className="btn-primary text-sm px-4 py-2 disabled:opacity-50 flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> {submitting ? "提交中..." : "提交店舖"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <MapPin className="w-7 h-7 text-brand-400" /> 店舖查詢
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">尋找你附近的卡牌店，點擊地址直接開啟 Google Maps 導航</p>
-        </div>
-        <button onClick={() => user ? setShowAdd(true) : window.location.href = "/auth/login"}
-          className="btn-primary flex items-center gap-2 shrink-0 text-sm">
-          <Plus className="w-4 h-4" /> 新增店舖
-        </button>
+      <div>
+        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+          <MapPin className="w-7 h-7 text-brand-400" /> 店舖查詢
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">尋找你附近的卡牌店，點擊地址直接開啟 Google Maps 導航</p>
       </div>
 
       {/* Stats */}
@@ -356,8 +220,8 @@ export default function StoresPage() {
       <div className="glass rounded-xl p-4 flex items-start gap-3 text-sm text-gray-500">
         <span className="text-lg shrink-0">💡</span>
         <div>
-          <p className="text-gray-300 font-medium mb-0.5">知道附近有卡牌店嗎？</p>
-          <p>點「新增店舖」提交資訊，幫助更多收藏家找到好店！管理員審核後會顯示官方驗證標記。</p>
+          <p className="text-gray-300 font-medium mb-0.5">找不到你的店舖？</p>
+          <p>請聯絡管理員新增，或在社群討論區留言告知。店舖資料由管理員統一維護，確保資訊準確。</p>
         </div>
       </div>
     </div>

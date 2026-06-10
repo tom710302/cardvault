@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Users, FileText, Database, Package, TrendingUp, Shield, Eye, Trash2, CheckCircle, Plus, X } from "lucide-react";
+import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation } from "lucide-react";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 
 interface Stats { users: number; posts: number; cards: number; collections: number; }
@@ -11,11 +12,15 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores">("dashboard");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [stores, setStores] = useState<any[]>([]);
+  const [showAddStore, setShowAddStore] = useState(false);
+  const [storeForm, setStoreForm] = useState({ name: "", address: "", city: "台北市", phone: "", website: "", hours: "", description: "", image_url: "", games: [] as string[] });
+  const [storeSubmitting, setStoreSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", rarity: "", description: "" });
@@ -27,6 +32,7 @@ export default function AdminPage() {
     fetchPosts();
     fetchUsers();
     fetchCards();
+    fetchStores();
   }, []);
 
   async function fetchStats() {
@@ -75,6 +81,52 @@ export default function AdminPage() {
     fetchCards();
   }
 
+  async function fetchStores() {
+    const { data } = await supabase.from("stores").select("*").order("created_at", { ascending: false });
+    if (data) setStores(data);
+  }
+
+  async function addStore(e: React.FormEvent) {
+    e.preventDefault();
+    setStoreSubmitting(true);
+    const res = await fetch("/api/stores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...storeForm, is_verified: true }),
+    });
+    if (res.ok) {
+      setShowAddStore(false);
+      setStoreForm({ name: "", address: "", city: "台北市", phone: "", website: "", hours: "", description: "", image_url: "", games: [] });
+      fetchStores();
+    } else {
+      const { error } = await res.json();
+      alert(error ?? "新增失敗");
+    }
+    setStoreSubmitting(false);
+  }
+
+  async function toggleVerify(id: string, verified: boolean) {
+    await fetch("/api/admin/stores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, is_verified: !verified }),
+    });
+    fetchStores();
+  }
+
+  async function deleteStore(id: string) {
+    if (!confirm("確定刪除此店舖？")) return;
+    await supabase.from("stores").delete().eq("id", id);
+    fetchStores();
+  }
+
+  function toggleStoreGame(g: string) {
+    setStoreForm(v => ({
+      ...v,
+      games: v.games.includes(g) ? v.games.filter(x => x !== g) : [...v.games, g],
+    }));
+  }
+
   async function deletePost(id: string) {
     if (!confirm("確定刪除這篇文章？")) return;
     await supabase.from("posts").update({ is_deleted: true }).eq("id", id);
@@ -117,7 +169,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -334,6 +386,142 @@ export default function AdminPage() {
                       className={`text-xs px-2 py-1 rounded transition-colors ${card.is_active ? "text-red-400 hover:text-red-300 bg-red-900/20" : "text-green-400 hover:text-green-300 bg-green-900/20"}`}>
                       {card.is_active ? "下架" : "上架"}
                     </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stores Management */}
+        {tab === "stores" && (
+          <div className="space-y-4">
+            {showAddStore && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
+                <div className="glass rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2"><MapPin className="w-5 h-5 text-brand-400" /> 新增店舖</h2>
+                    <button onClick={() => setShowAddStore(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+                  </div>
+                  <form onSubmit={addStore} className="space-y-3">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">店舖名稱 *</label>
+                      <input value={storeForm.name} onChange={e => setStoreForm(v => ({ ...v, name: e.target.value }))} required
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2">
+                        <label className="text-xs text-gray-400 mb-1 block">地址 *</label>
+                        <input value={storeForm.address} onChange={e => setStoreForm(v => ({ ...v, address: e.target.value }))} required
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">城市 *</label>
+                        <select value={storeForm.city} onChange={e => setStoreForm(v => ({ ...v, city: e.target.value }))}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                          {["台北市","新北市","桃園市","台中市","台南市","高雄市","其他"].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">電話</label>
+                        <input value={storeForm.phone} onChange={e => setStoreForm(v => ({ ...v, phone: e.target.value }))}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">網站</label>
+                        <input value={storeForm.website} onChange={e => setStoreForm(v => ({ ...v, website: e.target.value }))}
+                          placeholder="https://..."
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">營業時間</label>
+                      <input value={storeForm.hours} onChange={e => setStoreForm(v => ({ ...v, hours: e.target.value }))}
+                        placeholder="週一至週日 11:00-21:00"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">販售卡牌種類</label>
+                      <div className="flex flex-wrap gap-2">
+                        {["MTG","寶可夢","遊戲王","NBA","MLB","NFL","WS","其他"].map(g => (
+                          <button key={g} type="button" onClick={() => toggleStoreGame(g)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${storeForm.games.includes(g) ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}>
+                            {g}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">店舖簡介</label>
+                      <textarea value={storeForm.description} onChange={e => setStoreForm(v => ({ ...v, description: e.target.value }))} rows={2}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1.5 block">店舖照片</label>
+                      <ImageUpload folder="stores" label="上傳店舖照片" hint="JPG、PNG，最大 5MB"
+                        currentUrl={storeForm.image_url} className="aspect-video"
+                        onUpload={url => setStoreForm(v => ({ ...v, image_url: url }))}
+                        onRemove={() => setStoreForm(v => ({ ...v, image_url: "" }))} />
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                      <button type="button" onClick={() => setShowAddStore(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                      <button type="submit" disabled={storeSubmitting} className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
+                        {storeSubmitting ? "新增中..." : "新增店舖"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            <div className="glass rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-brand-400" /> 店舖管理（{stores.length} 間）
+                </h3>
+                <button onClick={() => setShowAddStore(true)} className="btn-primary text-sm flex items-center gap-1.5 px-3 py-1.5">
+                  <Plus className="w-3.5 h-3.5" /> 新增店舖
+                </button>
+              </div>
+              <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
+                {stores.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 text-sm">還沒有店舖資料</div>
+                ) : stores.map(store => (
+                  <div key={store.id} className="p-4 flex items-start gap-3">
+                    {store.image_url && (
+                      <img src={store.image_url} alt={store.name} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-gray-200">{store.name}</span>
+                        <span className="badge text-xs bg-gray-800 text-gray-400">{store.city}</span>
+                        {store.is_verified && <span className="badge text-xs text-green-400 bg-green-900/30">✓ 已驗證</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {store.address}
+                      </p>
+                      {store.games?.length > 0 && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {store.games.map((g: string) => <span key={g} className="badge text-[10px] bg-gray-800 text-gray-400">{g}</span>)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + " " + store.address)}`, "_blank")}
+                        className="text-xs text-brand-400 hover:text-brand-300 bg-brand-900/20 px-2 py-1 rounded transition-colors">
+                        地圖
+                      </button>
+                      <button onClick={() => toggleVerify(store.id, store.is_verified)}
+                        className={`text-xs px-2 py-1 rounded transition-colors ${store.is_verified ? "text-yellow-400 hover:text-yellow-300 bg-yellow-900/20" : "text-green-400 hover:text-green-300 bg-green-900/20"}`}>
+                        {store.is_verified ? "取消驗證" : "驗證"}
+                      </button>
+                      <button onClick={() => deleteStore(store.id)}
+                        className="text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded transition-colors">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
