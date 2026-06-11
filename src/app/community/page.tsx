@@ -298,7 +298,7 @@ function CommunityContent() {
                         : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
                     )}>
                     <span>🃏</span>
-                    <span className="flex-1 text-left">卡牌討論</span>
+                    <span className="flex-1 text-left">話題討論</span>
                     <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", cardBoardsOpen && "rotate-180")} />
                   </button>
 
