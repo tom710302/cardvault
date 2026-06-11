@@ -88,19 +88,15 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: "需要管理員權限" }, { status: 403 });
   }
 
-  let synced = 0, skipped = 0, errors = 0;
+  let synced = 0, updated = 0, errors = 0;
   try {
     const ids = await fetchEventIds();
 
     for (const id of ids) {
-      const { data: existing } = await admin.from("events")
-        .select("id").eq("source_id", id).eq("source", "official_pokemon").single();
-      if (existing) { skipped++; continue; }
-
       const detail = await fetchEventDetail(id);
       if (!detail?.start_date) { errors++; continue; }
 
-      const { error } = await admin.from("events").insert({
+      const payload = {
         title: detail.title,
         game: "寶可夢",
         event_type: "official",
@@ -116,13 +112,28 @@ export async function POST(_req: NextRequest) {
         source: "official_pokemon",
         source_id: detail.source_id,
         status: "approved",
-      });
-      if (error) { errors++; } else { synced++; }
+        updated_at: new Date().toISOString(),
+      };
+
+      // 檢查是否已存在
+      const { data: existing } = await admin.from("events")
+        .select("id").eq("source_id", id).eq("source", "official_pokemon").single();
+
+      if (existing) {
+        // 更新既有資料
+        const { error } = await admin.from("events").update(payload).eq("id", existing.id);
+        if (error) { errors++; } else { updated++; }
+      } else {
+        // 新增
+        const { error } = await admin.from("events").insert(payload);
+        if (error) { errors++; } else { synced++; }
+      }
+
       await new Promise(r => setTimeout(r, 200));
     }
   } catch (e) {
-    return NextResponse.json({ error: String(e), synced, skipped, errors }, { status: 500 });
+    return NextResponse.json({ error: String(e), synced, updated, errors }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, synced, skipped, errors });
+  return NextResponse.json({ success: true, synced, updated, errors });
 }

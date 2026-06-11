@@ -198,7 +198,7 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/sync-events", { method: "POST" });
       const body = await res.json();
       if (res.ok) {
-        alert(`✅ 同步完成！新增 ${body.synced} 筆，略過 ${body.skipped} 筆（已存在），錯誤 ${body.errors} 筆`);
+        alert(`✅ 同步完成！新增 ${body.synced} 筆，更新 ${body.updated} 筆，錯誤 ${body.errors} 筆`);
         fetchEvents(eventFilter);
       } else {
         alert("同步失敗：" + (body.error ?? "未知錯誤"));
