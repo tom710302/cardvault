@@ -46,14 +46,19 @@ export async function POST(request: NextRequest) {
     "",
     `📍 [前往店鋪查看更多商品](/stores/${owner.profile.store_id})`,
   ];
-  await supabase.from("posts").insert({
+  const { data: post } = await supabase.from("posts").insert({
     title: `【商品上架】${storeName} · ${name}`,
     content: lines.join("\n").trim(),
     board: "store",
     post_type: "news",
     author_id: owner.user.id,
     image_urls: image_url ? [image_url] : null,
-  });
+  }).select("id").single();
+
+  // Link post back to product so we can delete it later
+  if (post?.id) {
+    await supabase.from("store_products").update({ community_post_id: post.id }).eq("id", data.id);
+  }
 
   return NextResponse.json({ product: data }, { status: 201 });
 }
@@ -78,6 +83,15 @@ export async function DELETE(request: NextRequest) {
 
   const supabase = createClient();
   const { id } = await request.json();
+
+  // Find and remove the linked community post
+  const { data: product } = await supabase.from("store_products")
+    .select("community_post_id").eq("id", id).eq("store_id", owner.profile.store_id!).single();
+
+  if (product?.community_post_id) {
+    await supabase.from("posts").update({ is_deleted: true }).eq("id", product.community_post_id);
+  }
+
   await supabase.from("store_products").update({ is_active: false }).eq("id", id).eq("store_id", owner.profile.store_id!);
   return NextResponse.json({ success: true });
 }

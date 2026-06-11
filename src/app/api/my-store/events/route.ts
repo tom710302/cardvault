@@ -53,14 +53,19 @@ export async function POST(request: NextRequest) {
     registration_info ? `📋 報名資訊：${registration_info}` : "",
     registration_url ? `🔗 報名連結：${registration_url}` : "",
   ].filter(Boolean);
-  await supabase.from("posts").insert({
+  const { data: post } = await supabase.from("posts").insert({
     title: `【活動公告】${storeName} · ${title}`,
     content: lines.join("\n").trim(),
     board: "store",
     post_type: "news",
     author_id: owner.user.id,
     image_urls: image_urls?.length ? image_urls : (image_url ? [image_url] : null),
-  });
+  }).select("id").single();
+
+  // Link post back to event so we can delete it later
+  if (post?.id) {
+    await supabase.from("store_events").update({ community_post_id: post.id }).eq("id", data.id);
+  }
 
   return NextResponse.json({ event: data }, { status: 201 });
 }
@@ -71,6 +76,15 @@ export async function DELETE(request: NextRequest) {
 
   const supabase = createClient();
   const { id } = await request.json();
+
+  // Find and remove the linked community post
+  const { data: event } = await supabase.from("store_events")
+    .select("community_post_id").eq("id", id).eq("store_id", owner.profile.store_id!).single();
+
+  if (event?.community_post_id) {
+    await supabase.from("posts").update({ is_deleted: true }).eq("id", event.community_post_id);
+  }
+
   await supabase.from("store_events").update({ is_active: false }).eq("id", id).eq("store_id", owner.profile.store_id!);
   return NextResponse.json({ success: true });
 }
