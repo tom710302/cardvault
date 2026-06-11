@@ -8,6 +8,11 @@ import {
   X, Send, ImageIcon, Grid3X3, Trophy, Package, Users, ChevronDown,
 } from "lucide-react";
 import { timeAgo, cn } from "@/lib/utils";
+
+// Strip [text](url) markdown so list previews show clean text
+function stripMarkdown(text: string) {
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+}
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
@@ -364,7 +369,7 @@ function CommunityContent() {
                       <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
                     </div>
                     <h2 className="font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">{post.title}</h2>
-                    <p className="text-sm text-gray-500 line-clamp-1">{post.content}</p>
+                    <p className="text-sm text-gray-500 line-clamp-1">{stripMarkdown(post.content)}</p>
                     {post.image_urls && post.image_urls.length > 0 && (
                       <div className="flex gap-1.5 mt-1">
                         {post.image_urls.slice(0, 3).map((url, i) => (
