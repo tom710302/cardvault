@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -12,7 +12,7 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content">("dashboard");
   const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -29,6 +29,8 @@ export default function AdminPage() {
   const [storeForm, setStoreForm] = useState({ name: "", address: "", city: "台北市", phone: "", website: "", hours: "", description: "", image_url: "", games: [] as string[] });
   const [storeSubmitting, setStoreSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [communityRules, setCommunityRules] = useState<string[]>([]);
+  const [savingRules, setSavingRules] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", rarity: "", description: "" });
   const [cardSubmitting, setCardSubmitting] = useState(false);
@@ -245,7 +247,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -765,6 +767,119 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* 文案編輯 */}
+        {tab === "content" && (
+          <div className="space-y-6 max-w-2xl">
+            <ContentEditor
+              title="社群討論 · 發文規則"
+              description="顯示在社群討論側邊欄的發文規則列表"
+              settingKey="community_rules"
+              rules={communityRules}
+              setRules={setCommunityRules}
+              saving={savingRules}
+              onSave={async () => {
+                setSavingRules(true);
+                await fetch("/api/admin/settings", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ key: "community_rules", value: communityRules }),
+                });
+                setSavingRules(false);
+              }}
+              onLoad={async () => {
+                const res = await fetch("/api/settings?key=community_rules");
+                if (res.ok) {
+                  const { value } = await res.json();
+                  if (Array.isArray(value)) setCommunityRules(value);
+                  else setCommunityRules(["請選擇正確板塊發文", "標題清楚描述內容", "價格詢問請附圖片", "尊重其他收藏家", "禁止廣告或詐騙行為"]);
+                }
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ContentEditor({ title, description, settingKey, rules, setRules, saving, onSave, onLoad }: {
+  title: string; description: string; settingKey: string;
+  rules: string[]; setRules: (r: string[]) => void;
+  saving: boolean; onSave: () => Promise<void>; onLoad: () => Promise<void>;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!loaded) { onLoad().then(() => setLoaded(true)); }
+  }, []);
+
+  async function handleSave() {
+    await onSave();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function updateRule(i: number, v: string) {
+    const next = [...rules]; next[i] = v; setRules(next);
+  }
+  function removeRule(i: number) { setRules(rules.filter((_, idx) => idx !== i)); }
+  function addRule() { setRules([...rules, ""]); }
+  function moveUp(i: number) {
+    if (i === 0) return;
+    const next = [...rules]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; setRules(next);
+  }
+  function moveDown(i: number) {
+    if (i === rules.length - 1) return;
+    const next = [...rules]; [next[i], next[i + 1]] = [next[i + 1], next[i]]; setRules(next);
+  }
+
+  return (
+    <div className="glass rounded-2xl p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-bold text-white">{title}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+      </div>
+
+      {!loaded ? (
+        <div className="space-y-2">{Array(5).fill(0).map((_, i) => <div key={i} className="h-10 rounded-lg glass shimmer" />)}</div>
+      ) : (
+        <div className="space-y-2">
+          {rules.map((rule, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 w-5 text-right shrink-0">{i + 1}.</span>
+              <input
+                value={rule}
+                onChange={e => updateRule(i, e.target.value)}
+                placeholder={`規則 ${i + 1}`}
+                className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => moveUp(i)} disabled={i === 0} title="上移"
+                  className="p-1.5 text-gray-500 hover:text-gray-200 disabled:opacity-20 transition-colors">↑</button>
+                <button onClick={() => moveDown(i)} disabled={i === rules.length - 1} title="下移"
+                  className="p-1.5 text-gray-500 hover:text-gray-200 disabled:opacity-20 transition-colors">↓</button>
+                <button onClick={() => removeRule(i)} title="刪除"
+                  className="p-1.5 text-red-500 hover:text-red-400 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button onClick={addRule}
+            className="flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 transition-colors mt-1">
+            <Plus className="w-3.5 h-3.5" /> 新增規則
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+        <button onClick={handleSave} disabled={saving || !loaded}
+          className="btn-primary text-sm px-5 py-2 flex items-center gap-2 disabled:opacity-50">
+          {saving ? "儲存中…" : saved ? "✓ 已儲存" : "儲存"}
+        </button>
+        <p className="text-xs text-gray-600">儲存後立即在網站前台生效</p>
       </div>
     </div>
   );

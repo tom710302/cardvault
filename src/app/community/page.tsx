@@ -68,6 +68,9 @@ function CommunityContent() {
 
   // Shared
   const [user, setUser] = useState<any>(null);
+  const [communityRules, setCommunityRules] = useState<string[]>([
+    "請選擇正確板塊發文", "標題清楚描述內容", "價格詢問請附圖片", "尊重其他收藏家", "禁止廣告或詐騙行為",
+  ]);
 
   // Discussion tab
   const [activeBoard, setActiveBoard] = useState("all");
@@ -87,6 +90,10 @@ function CommunityContent() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    fetch("/api/settings?key=community_rules")
+      .then(r => r.json())
+      .then(({ value }) => { if (Array.isArray(value) && value.length > 0) setCommunityRules(value); })
+      .catch(() => {});
   }, []);
 
   const fetchPosts = useCallback(async () => {
@@ -325,7 +332,7 @@ function CommunityContent() {
             <div className="glass rounded-xl p-4">
               <h3 className="text-sm font-semibold text-gray-300 mb-2">發文規則</h3>
               <ul className="text-xs text-gray-500 space-y-1.5">
-                {["請選擇正確板塊發文", "標題清楚描述內容", "價格詢問請附圖片", "尊重其他收藏家", "禁止廣告或詐騙行為"].map((r, i) => (
+                {communityRules.map((r, i) => (
                   <li key={i} className="flex gap-1.5"><span className="text-brand-500">{i + 1}.</span>{r}</li>
                 ))}
               </ul>
