@@ -8,6 +8,18 @@ import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useRouter } from "next/navigation";
 
+function renderContent(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  return parts.map((part, i) => {
+    const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (!m) return <span key={i}>{part}</span>;
+    const [, label, href] = m;
+    return href.startsWith("/")
+      ? <Link key={i} href={href} className="text-brand-400 hover:text-brand-300 underline underline-offset-2">{label}</Link>
+      : <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">{label}</a>;
+  });
+}
+
 const typeColor: Record<string, string> = {
   discussion: "text-blue-400 bg-blue-900/30",
   showcase: "text-purple-400 bg-purple-900/30",
@@ -241,7 +253,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             </div>
             {!editing && (
               <div className="space-y-4">
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{renderContent(post.content)}</p>
                 {post.image_urls && post.image_urls.length > 0 && (
                   <div className={`grid gap-2 ${post.image_urls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                     {post.image_urls.map((url: string, i: number) => (

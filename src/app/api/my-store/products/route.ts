@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     `售價：${price ? `NT$${Number(price).toLocaleString()}` : "價格面議"}`,
     `庫存：${stock ?? 0} 件`,
     "",
-    `📍 前往店鋪查看更多商品`,
+    `📍 [前往店鋪查看更多商品](/stores/${owner.profile.store_id})`,
   ];
   await supabase.from("posts").insert({
     title: `【商品上架】${storeName} · ${name}`,
