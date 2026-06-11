@@ -33,6 +33,28 @@ export async function POST(request: NextRequest) {
     .select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Auto-post to community
+  const { data: store } = await supabase.from("stores").select("name").eq("id", owner.profile.store_id!).single();
+  const storeName = store?.name ?? "店家";
+  const lines = [
+    description ?? "",
+    "",
+    `分類：${category ?? "一般"}`,
+    `售價：${price ? `NT$${Number(price).toLocaleString()}` : "價格面議"}`,
+    `庫存：${stock ?? 0} 件`,
+    "",
+    `📍 前往店鋪查看更多商品`,
+  ];
+  await supabase.from("posts").insert({
+    title: `【商品上架】${storeName} · ${name}`,
+    content: lines.join("\n").trim(),
+    board: "store",
+    post_type: "news",
+    author_id: owner.user.id,
+    image_urls: image_url ? [image_url] : null,
+  });
+
   return NextResponse.json({ product: data }, { status: 201 });
 }
 

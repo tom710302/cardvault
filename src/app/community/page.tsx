@@ -35,6 +35,7 @@ const boards = [
   { id: "yugioh", label: "遊戲王", icon: "🌀" },
   { id: "nba", label: "NBA", icon: "🏀" },
   { id: "mlb", label: "MLB", icon: "⚾" },
+  { id: "store", label: "店家公告", icon: "🏪" },
 ];
 const postTypes = [
   { value: "discussion", label: "🗣️ 討論" },

@@ -39,6 +39,29 @@ export async function POST(request: NextRequest) {
     .select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Auto-post to community
+  const { data: store } = await supabase.from("stores").select("name").eq("id", owner.profile.store_id!).single();
+  const storeName = store?.name ?? "店家";
+  const dateStr = event_date ? new Date(event_date).toLocaleDateString("zh-TW") : "時間待定";
+  const endDateStr = end_date ? ` ~ ${new Date(end_date).toLocaleDateString("zh-TW")}` : "";
+  const lines = [
+    description ?? "",
+    "",
+    `📅 活動時間：${dateStr}${endDateStr}`,
+    `📍 活動地點：${location ?? "待定"}`,
+    registration_info ? `📋 報名資訊：${registration_info}` : "",
+    registration_url ? `🔗 報名連結：${registration_url}` : "",
+  ].filter(Boolean);
+  await supabase.from("posts").insert({
+    title: `【活動公告】${storeName} · ${title}`,
+    content: lines.join("\n").trim(),
+    board: "store",
+    post_type: "news",
+    author_id: owner.user.id,
+    image_urls: image_urls?.length ? image_urls : (image_url ? [image_url] : null),
+  });
+
   return NextResponse.json({ event: data }, { status: 201 });
 }
 
