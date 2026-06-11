@@ -256,9 +256,14 @@ export default function AuctionDetailPage() {
               </div>
             )}
 
-            {auction.contact_info && !isEnded && (
+            {isOwner && auction.contact_info && (
               <div className="text-xs text-gray-500 border border-white/10 rounded-xl p-3">
-                📬 得標聯絡方式：{auction.contact_info}
+                <span className="text-gray-600">你設定的聯絡方式：</span> {auction.contact_info}
+              </div>
+            )}
+            {isActive && !isOwner && (
+              <div className="text-xs text-gray-600 text-center py-1">
+                📬 聯絡方式將於結標後通知得標者
               </div>
             )}
           </div>

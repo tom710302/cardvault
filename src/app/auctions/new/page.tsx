@@ -147,6 +147,7 @@ export default function NewAuctionPage() {
           <input value={form.contact_info} onChange={e => setForm(v => ({ ...v, contact_info: e.target.value }))}
             placeholder="例：Line ID: xxx、IG: @xxx、得標後私訊…"
             className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+          <p className="text-[11px] text-gray-600 mt-1">結標後才會顯示給得標者，其他人看不到</p>
         </div>
 
         <div className="glass rounded-xl px-4 py-3 text-xs text-gray-500 flex items-start gap-2">
