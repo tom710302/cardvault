@@ -195,9 +195,7 @@ export default function AdminPage() {
   async function syncPokemonEvents() {
     setSyncing(true);
     try {
-      const res = await fetch("/api/cron/sync-events", {
-        headers: { authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}` },
-      });
+      const res = await fetch("/api/admin/sync-events", { method: "POST" });
       const body = await res.json();
       if (res.ok) {
         alert(`✅ 同步完成！新增 ${body.synced} 筆，略過 ${body.skipped} 筆（已存在），錯誤 ${body.errors} 筆`);
