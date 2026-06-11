@@ -1,18 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award, X, Send, ImageIcon } from "lucide-react";
+import {
+  PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award,
+  X, Send, ImageIcon, Grid3X3, Trophy, Package, Users,
+} from "lucide-react";
 import { timeAgo, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+
+interface Post {
+  id: string; title: string; content: string; board: string; post_type: string;
+  upvotes: number; view_count: number; created_at: string;
+  image_urls?: string[] | null;
+  profiles: { username: string; avatar_url: string | null; reputation: number } | null;
+}
+interface ShowcaseUser {
+  id: string; username: string; display_name: string | null;
+  reputation: number; avatar_url: string | null;
+  collection_count: number; collections: any[];
+}
 
 const sortTabs = [
   { id: "hot", label: "熱門", icon: Flame },
   { id: "new", label: "最新", icon: Clock },
   { id: "top", label: "精選", icon: Award },
 ];
-
 const boards = [
   { id: "all", label: "全部", icon: "🃏" },
   { id: "mtg", label: "MTG", icon: "⚔️" },
@@ -21,50 +36,53 @@ const boards = [
   { id: "nba", label: "NBA", icon: "🏀" },
   { id: "mlb", label: "MLB", icon: "⚾" },
 ];
-
 const postTypes = [
   { value: "discussion", label: "🗣️ 討論" },
   { value: "showcase", label: "📸 展示" },
   { value: "price_check", label: "💰 價格詢問" },
   { value: "news", label: "📰 資訊" },
 ];
-
 const typeColor: Record<string, string> = {
   discussion: "text-blue-400 bg-blue-900/30",
   showcase: "text-purple-400 bg-purple-900/30",
   price_check: "text-yellow-400 bg-yellow-900/30",
   news: "text-green-400 bg-green-900/30",
 };
-
 const typeLabel: Record<string, string> = {
   discussion: "🗣️ 討論", showcase: "📸 展示", price_check: "💰 價格詢問", news: "📰 資訊",
 };
+const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
-interface Post {
-  id: string; title: string; content: string; board: string; post_type: string;
-  upvotes: number; view_count: number; created_at: string;
-  profiles: { username: string; avatar_url: string | null; reputation: number } | null;
-  comment_count?: number;
-}
+function CommunityContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tab = searchParams.get("tab") ?? "discussion";
+  const supabase = createClient();
 
-export default function CommunityPage() {
+  // Shared
+  const [user, setUser] = useState<any>(null);
+
+  // Discussion tab
   const [activeBoard, setActiveBoard] = useState("all");
   const [activeSort, setActiveSort] = useState("new");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [newPost, setNewPost] = useState({ title: "", content: "", board: "general", post_type: "discussion" });
   const [postImages, setPostImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const supabase = createClient();
+
+  // Showcase tab
+  const [showcaseFilter, setShowcaseFilter] = useState("all");
+  const [showcaseUsers, setShowcaseUsers] = useState<ShowcaseUser[]>([]);
+  const [showcaseLoading, setShowcaseLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
 
   const fetchPosts = useCallback(async () => {
-    setLoading(true);
+    setPostsLoading(true);
     let url = "/api/posts?limit=30";
     if (activeBoard !== "all") url += `&board=${activeBoard}`;
     const res = await fetch(url);
@@ -75,10 +93,37 @@ export default function CommunityPage() {
       if (activeSort === "top") sorted.sort((a: Post, b: Post) => (b.upvotes + b.view_count) - (a.upvotes + a.view_count));
       setPosts(sorted);
     }
-    setLoading(false);
+    setPostsLoading(false);
   }, [activeBoard, activeSort]);
 
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useEffect(() => {
+    if (tab === "discussion") { const t = setTimeout(fetchPosts, 300); return () => clearTimeout(t); }
+  }, [tab, fetchPosts]);
+
+  useEffect(() => {
+    if (tab !== "showcase") return;
+    setShowcaseLoading(true);
+    async function loadShowcase() {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, reputation, avatar_url")
+        .order("reputation", { ascending: false })
+        .limit(24);
+      if (!profiles) { setShowcaseLoading(false); return; }
+      const withCollections = await Promise.all(profiles.map(async p => {
+        const { data: cols, count } = await supabase
+          .from("collections")
+          .select("*, cards(id, name, game, rarity, image_url)", { count: "exact" })
+          .eq("user_id", p.id)
+          .eq("visibility", "public")
+          .limit(4);
+        return { ...p, collection_count: count ?? 0, collections: cols ?? [] };
+      }));
+      setShowcaseUsers(withCollections.filter(u => u.collection_count > 0));
+      setShowcaseLoading(false);
+    }
+    loadShowcase();
+  }, [tab]);
 
   async function submitPost(e: React.FormEvent) {
     e.preventDefault();
@@ -101,8 +146,12 @@ export default function CommunityPage() {
     setSubmitting(false);
   }
 
+  const filteredShowcaseUsers = showcaseFilter === "top"
+    ? showcaseUsers.filter(u => u.reputation >= 100)
+    : showcaseUsers;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       {/* New Post Modal */}
       {showNewPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
@@ -143,10 +192,8 @@ export default function CommunityPage() {
                   placeholder="分享你的想法..." required rows={5}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
-
-              {/* Image Upload */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1">
+                <label className="text-xs text-gray-400 mb-1 flex items-center gap-1">
                   <ImageIcon className="w-3 h-3" /> 附圖（最多 4 張，選填）
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -160,13 +207,8 @@ export default function CommunityPage() {
                     </div>
                   ))}
                   {postImages.length < 4 && (
-                    <ImageUpload
-                      folder="posts"
-                      label="點擊上傳圖片"
-                      hint="JPG、PNG，最大 5MB"
-                      className="aspect-video"
-                      onUpload={(url) => setPostImages(prev => [...prev, url])}
-                    />
+                    <ImageUpload folder="posts" label="點擊上傳圖片" hint="JPG、PNG，最大 5MB"
+                      className="aspect-video" onUpload={url => setPostImages(prev => [...prev, url])} />
                   )}
                 </div>
               </div>
@@ -182,121 +224,243 @@ export default function CommunityPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <aside className="space-y-4">
-          <div className="glass rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">版塊選擇</h3>
-            <ul className="space-y-1">
-              {boards.map(board => (
-                <li key={board.id}>
-                  <button onClick={() => setActiveBoard(board.id)}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors font-medium",
-                      activeBoard === board.id ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                    )}>
-                    <span>{board.icon}</span> {board.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="glass rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">發文規則</h3>
-            <ul className="text-xs text-gray-500 space-y-1.5">
-              {["請選擇正確板塊發文","標題清楚描述內容","價格詢問請附圖片","尊重其他收藏家","禁止廣告或詐騙行為"].map((r, i) => (
-                <li key={i} className="flex gap-1.5"><span className="text-brand-500">{i+1}.</span>{r}</li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-white">社群討論</h1>
+          <p className="text-gray-400 text-sm mt-1">分享想法、展示收藏，一起交流</p>
+        </div>
+        {tab === "discussion" && (
+          <button onClick={() => user ? setShowNewPost(true) : router.push("/auth/login")}
+            className="btn-primary flex items-center gap-2 shrink-0 text-sm">
+            <PenLine className="w-4 h-4" /> 發文
+          </button>
+        )}
+        {tab === "showcase" && user && (
+          <Link href="/collection" className="btn-primary flex items-center gap-2 shrink-0 text-sm">
+            <Package className="w-4 h-4" /> 管理我的收藏
+          </Link>
+        )}
+      </div>
 
-        {/* Main */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white">社群討論</h1>
-              <p className="text-sm text-gray-500 mt-0.5">{boards.find(b => b.id === activeBoard)?.label ?? "全部"} 板</p>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-white/10">
+        {[
+          { id: "discussion", label: "💬 討論區" },
+          { id: "showcase", label: "✨ 收藏展示" },
+        ].map(({ id, label }) => (
+          <button key={id} onClick={() => router.replace(`/community?tab=${id}`)}
+            className={cn("px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
+              tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"
+            )}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Discussion Tab ── */}
+      {tab === "discussion" && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <aside className="space-y-4">
+            <div className="glass rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">版塊選擇</h3>
+              <ul className="space-y-1">
+                {boards.map(board => (
+                  <li key={board.id}>
+                    <button onClick={() => setActiveBoard(board.id)}
+                      className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors font-medium",
+                        activeBoard === board.id ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                      )}>
+                      <span>{board.icon}</span> {board.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <button onClick={() => user ? setShowNewPost(true) : window.location.href = "/auth/login"}
-              className="btn-primary flex items-center gap-2 shrink-0 text-sm">
-              <PenLine className="w-4 h-4" /> 發文
-            </button>
-          </div>
+            <div className="glass rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">發文規則</h3>
+              <ul className="text-xs text-gray-500 space-y-1.5">
+                {["請選擇正確板塊發文", "標題清楚描述內容", "價格詢問請附圖片", "尊重其他收藏家", "禁止廣告或詐騙行為"].map((r, i) => (
+                  <li key={i} className="flex gap-1.5"><span className="text-brand-500">{i + 1}.</span>{r}</li>
+                ))}
+              </ul>
+            </div>
+          </aside>
 
-          <div className="flex gap-2 border-b border-white/10">
-            {sortTabs.map(({ id, label, icon: Icon }) => (
-              <button key={id} onClick={() => setActiveSort(id)}
-                className={cn("flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
-                  activeSort === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"
-                )}>
-                <Icon className="w-3.5 h-3.5" /> {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-3 pt-2">
-            {loading ? (
-              Array(5).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-24 shimmer" />)
-            ) : posts.length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
-                <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p>還沒有文章，來發第一篇吧！</p>
-                <button onClick={() => setShowNewPost(true)} className="btn-primary mt-3 text-sm">發文</button>
-              </div>
-            ) : posts.map(post => (
-              <Link href={`/community/${post.id}`} key={post.id}
-                className="glass rounded-xl p-4 flex gap-4 card-hover group block">
-                <div className="flex flex-col items-center gap-1 shrink-0 pt-1 min-w-[36px]">
-                  <span className="text-gray-600 text-lg leading-none">▲</span>
-                  <span className="text-sm font-bold text-gray-300">{post.upvotes}</span>
-                  <span className="text-gray-600 text-lg leading-none">▼</span>
+          {/* Main */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex gap-2 border-b border-white/10">
+              {sortTabs.map(({ id, label, icon: Icon }) => (
+                <button key={id} onClick={() => setActiveSort(id)}
+                  className={cn("flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
+                    activeSort === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"
+                  )}>
+                  <Icon className="w-3.5 h-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3 pt-2">
+              {postsLoading ? (
+                Array(5).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-24 shimmer" />)
+              ) : posts.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>還沒有文章，來發第一篇吧！</p>
+                  <button onClick={() => setShowNewPost(true)} className="btn-primary mt-3 text-sm">發文</button>
                 </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`badge text-xs ${typeColor[post.post_type] ?? "text-gray-400 bg-gray-800"}`}>
-                      {typeLabel[post.post_type]}
-                    </span>
-                    <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
+              ) : posts.map(post => (
+                <Link href={`/community/${post.id}`} key={post.id}
+                  className="glass rounded-xl p-4 flex gap-4 card-hover group block">
+                  <div className="flex flex-col items-center gap-1 shrink-0 pt-1 min-w-[36px]">
+                    <span className="text-gray-600 text-lg leading-none">▲</span>
+                    <span className="text-sm font-bold text-gray-300">{post.upvotes}</span>
+                    <span className="text-gray-600 text-lg leading-none">▼</span>
                   </div>
-                  <h2 className="font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">{post.title}</h2>
-                  <p className="text-sm text-gray-500 line-clamp-1">{post.content}</p>
-                  {/* 圖片縮圖預覽 */}
-                  {(post as any).image_urls?.length > 0 && (
-                    <div className="flex gap-1.5 mt-1">
-                      {(post as any).image_urls.slice(0, 3).map((url: string, i: number) => (
-                        <div key={i} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                      {(post as any).image_urls.length > 3 && (
-                        <div className="w-14 h-14 rounded-lg bg-gray-800 flex items-center justify-center text-xs text-gray-400 shrink-0 border border-white/10">
-                          +{(post as any).image_urls.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-white text-[10px] font-bold">
-                        {post.profiles?.username?.[0]?.toUpperCase() ?? "?"}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`badge text-xs ${typeColor[post.post_type] ?? "text-gray-400 bg-gray-800"}`}>
+                        {typeLabel[post.post_type]}
                       </span>
-                      <span className="text-gray-400">{post.profiles?.username ?? "用戶"}</span>
-                    </span>
-                    <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> 留言</span>
-                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
-                    <span>{timeAgo(new Date(post.created_at))}</span>
+                      <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
+                    </div>
+                    <h2 className="font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">{post.title}</h2>
+                    <p className="text-sm text-gray-500 line-clamp-1">{post.content}</p>
+                    {post.image_urls && post.image_urls.length > 0 && (
+                      <div className="flex gap-1.5 mt-1">
+                        {post.image_urls.slice(0, 3).map((url, i) => (
+                          <div key={i} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                        {post.image_urls.length > 3 && (
+                          <div className="w-14 h-14 rounded-lg bg-gray-800 flex items-center justify-center text-xs text-gray-400 shrink-0 border border-white/10">
+                            +{post.image_urls.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-white text-[10px] font-bold">
+                          {post.profiles?.username?.[0]?.toUpperCase() ?? "?"}
+                        </span>
+                        <span className="text-gray-400">{post.profiles?.username ?? "用戶"}</span>
+                      </span>
+                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> 留言</span>
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
+                      <span>{timeAgo(new Date(post.created_at))}</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
+            {posts.length > 0 && (
+              <button onClick={fetchPosts} className="btn-secondary w-full flex items-center justify-center gap-2 text-sm">
+                <TrendingUp className="w-4 h-4" /> 重新載入
+              </button>
+            )}
           </div>
-          {posts.length > 0 && (
-            <button onClick={fetchPosts} className="btn-secondary w-full flex items-center justify-center gap-2 text-sm">
-              <TrendingUp className="w-4 h-4" /> 重新載入
-            </button>
+        </div>
+      )}
+
+      {/* ── Showcase Tab ── */}
+      {tab === "showcase" && (
+        <div className="space-y-5">
+          {/* Filter */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex gap-2">
+              {[
+                { id: "all", label: "全部收藏家" },
+                { id: "top", label: "⭐ 精選收藏家" },
+              ].map(f => (
+                <button key={f.id} onClick={() => setShowcaseFilter(f.id)}
+                  className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+                    showcaseFilter === f.id ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                  )}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">{filteredShowcaseUsers.length} 位收藏家公開了他們的收藏</p>
+          </div>
+
+          {showcaseLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array(6).fill(0).map((_, i) => <div key={i} className="glass rounded-2xl h-56 shimmer" />)}
+            </div>
+          ) : filteredShowcaseUsers.length === 0 ? (
+            <div className="text-center py-20 text-gray-500 space-y-3">
+              <Package className="w-12 h-12 mx-auto opacity-30" />
+              <p>還沒有收藏家公開他們的收藏</p>
+              {user
+                ? <Link href="/collection" className="btn-primary text-sm inline-flex gap-2"><Package className="w-4 h-4" /> 新增我的收藏</Link>
+                : <Link href="/auth/login" className="btn-secondary text-sm inline-flex">登入後新增收藏</Link>
+              }
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredShowcaseUsers.map(u => (
+                <Link key={u.id} href={`/users/${u.id}`}
+                  className="glass rounded-2xl overflow-hidden card-hover group block">
+                  {/* Card preview strip */}
+                  <div className="grid grid-cols-4 h-28 bg-gray-900">
+                    {u.collections.slice(0, 4).map((col: any, i: number) => (
+                      <div key={i} className="overflow-hidden bg-gray-800">
+                        {(col.image_url || col.cards?.image_url)
+                          ? <img src={col.image_url ?? col.cards?.image_url} alt=""
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          : <div className="w-full h-full flex items-center justify-center text-2xl">
+                              {gameEmoji[col.cards?.game ?? ""] ?? "🃏"}
+                            </div>
+                        }
+                      </div>
+                    ))}
+                    {Array(Math.max(0, 4 - u.collections.length)).fill(0).map((_, i) => (
+                      <div key={`empty-${i}`} className="bg-gray-900 flex items-center justify-center text-gray-800 border-l border-gray-800">
+                        <Grid3X3 className="w-4 h-4" />
+                      </div>
+                    ))}
+                  </div>
+                  {/* User info */}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
+                        {u.avatar_url
+                          ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                          : u.username[0]?.toUpperCase()
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-white text-sm truncate group-hover:text-brand-300 transition-colors">
+                          {u.display_name ?? u.username}
+                        </div>
+                        <div className="text-xs text-gray-500">@{u.username}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-1 border-t border-white/5">
+                      <span className="flex items-center gap-1">
+                        <Package className="w-3 h-3" /> {u.collection_count} 張收藏
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Trophy className="w-3 h-3" /> {u.reputation} 聲望
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      )}
     </div>
+  );
+}
+
+export default function CommunityPage() {
+  return (
+    <Suspense>
+      <CommunityContent />
+    </Suspense>
   );
 }

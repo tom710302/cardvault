@@ -242,8 +242,8 @@ export default function MyPage() {
           {collection.length === 0 ? (
             <div className="text-center py-20 text-gray-500 space-y-3 px-4">
               <Package className="w-12 h-12 mx-auto opacity-30" />
-              <p>還沒有收藏，去卡牌資料庫加入第一張卡！</p>
-              <Link href="/cards" className="btn-primary text-sm inline-flex">瀏覽卡牌</Link>
+              <p>還沒有收藏，點下方按鈕新增第一張！</p>
+              <Link href="/collection" className="btn-primary text-sm inline-flex">新增收藏</Link>
             </div>
           ) : (
             <>
@@ -299,7 +299,7 @@ export default function MyPage() {
                   </div>
                 ))}
                 {/* Add button */}
-                <Link href="/cards" className="aspect-square bg-gray-900 border border-dashed border-white/10 hover:border-brand-500/50 flex items-center justify-center transition-colors group">
+                <Link href="/collection" className="aspect-square bg-gray-900 border border-dashed border-white/10 hover:border-brand-500/50 flex items-center justify-center transition-colors group">
                   <Plus className="w-8 h-8 text-gray-600 group-hover:text-brand-400 transition-colors" />
                 </Link>
               </div>
