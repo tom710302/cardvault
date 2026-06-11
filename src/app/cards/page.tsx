@@ -52,7 +52,11 @@ export default function CardsPage() {
 
   // 切換遊戲時重設系列
   function handleGameChange(g: string) {
-    setGame(g);
+    if (g === "寶可夢" && game === "寶可夢") {
+      setGame("全部");
+    } else {
+      setGame(g);
+    }
     setSelectedSet("全部");
   }
 
