@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award,
-  X, Send, ImageIcon, Grid3X3, Trophy, Package, Users,
+  X, Send, ImageIcon, Grid3X3, Trophy, Package, Users, ChevronDown,
 } from "lucide-react";
 import { timeAgo, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -28,15 +28,16 @@ const sortTabs = [
   { id: "new", label: "最新", icon: Clock },
   { id: "top", label: "精選", icon: Award },
 ];
-const boards = [
-  { id: "all", label: "全部", icon: "🃏" },
+const cardBoards = [
   { id: "mtg", label: "MTG", icon: "⚔️" },
   { id: "pokemon", label: "寶可夢", icon: "⚡" },
   { id: "yugioh", label: "遊戲王", icon: "🌀" },
   { id: "nba", label: "NBA", icon: "🏀" },
   { id: "mlb", label: "MLB", icon: "⚾" },
-  { id: "store", label: "店家公告", icon: "🏪" },
 ];
+
+// used only in new-post form (no store — that board is auto-only)
+const boards = cardBoards;
 const postTypes = [
   { value: "discussion", label: "🗣️ 討論" },
   { value: "showcase", label: "📸 展示" },
@@ -65,6 +66,7 @@ function CommunityContent() {
 
   // Discussion tab
   const [activeBoard, setActiveBoard] = useState("all");
+  const [cardBoardsOpen, setCardBoardsOpen] = useState(false);
   const [activeSort, setActiveSort] = useState("new");
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -84,14 +86,15 @@ function CommunityContent() {
 
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
-    let url = "/api/posts?limit=30";
-    if (activeBoard !== "all") url += `&board=${activeBoard}`;
-    const res = await fetch(url);
+    // "cards" is a virtual board: all posts except store
+    const boardParam = activeBoard === "all" || activeBoard === "cards" ? "" : `&board=${activeBoard}`;
+    const res = await fetch(`/api/posts?limit=50${boardParam}`);
     if (res.ok) {
       const { posts } = await res.json();
-      let sorted = [...(posts ?? [])];
-      if (activeSort === "hot") sorted.sort((a: Post, b: Post) => b.upvotes - a.upvotes);
-      if (activeSort === "top") sorted.sort((a: Post, b: Post) => (b.upvotes + b.view_count) - (a.upvotes + a.view_count));
+      let sorted: Post[] = [...(posts ?? [])];
+      if (activeBoard === "cards") sorted = sorted.filter(p => p.board !== "store");
+      if (activeSort === "hot") sorted.sort((a, b) => b.upvotes - a.upvotes);
+      if (activeSort === "top") sorted.sort((a, b) => (b.upvotes + b.view_count) - (a.upvotes + a.view_count));
       setPosts(sorted);
     }
     setPostsLoading(false);
@@ -267,16 +270,61 @@ function CommunityContent() {
             <div className="glass rounded-xl p-4">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">版塊選擇</h3>
               <ul className="space-y-1">
-                {boards.map(board => (
-                  <li key={board.id}>
-                    <button onClick={() => setActiveBoard(board.id)}
-                      className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors font-medium",
-                        activeBoard === board.id ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                      )}>
-                      <span>{board.icon}</span> {board.label}
-                    </button>
-                  </li>
-                ))}
+                {/* 全部 */}
+                <li>
+                  <button onClick={() => { setActiveBoard("all"); setCardBoardsOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      activeBoard === "all" ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                    )}>
+                    <span>🃏</span> 全部
+                  </button>
+                </li>
+
+                {/* 卡牌討論 accordion */}
+                <li>
+                  <button
+                    onClick={() => {
+                      const opening = !cardBoardsOpen;
+                      setCardBoardsOpen(opening);
+                      if (opening && activeBoard !== "cards" && !cardBoards.some(b => b.id === activeBoard)) {
+                        setActiveBoard("cards");
+                      }
+                    }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      (activeBoard === "cards" || cardBoards.some(b => b.id === activeBoard))
+                        ? "bg-brand-600/20 text-brand-300"
+                        : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                    )}>
+                    <span>🃏</span>
+                    <span className="flex-1 text-left">卡牌討論</span>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", cardBoardsOpen && "rotate-180")} />
+                  </button>
+
+                  {cardBoardsOpen && (
+                    <ul className="mt-1 ml-3 pl-3 border-l border-white/10 space-y-0.5">
+                      {cardBoards.map(board => (
+                        <li key={board.id}>
+                          <button onClick={() => setActiveBoard(board.id)}
+                            className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors",
+                              activeBoard === board.id ? "text-brand-300 bg-brand-600/10" : "text-gray-500 hover:text-gray-200 hover:bg-white/5"
+                            )}>
+                            <span>{board.icon}</span> {board.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+
+                {/* 店家公告 */}
+                <li>
+                  <button onClick={() => { setActiveBoard("store"); setCardBoardsOpen(false); }}
+                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      activeBoard === "store" ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                    )}>
+                    <span>🏪</span> 店家公告
+                  </button>
+                </li>
               </ul>
             </div>
             <div className="glass rounded-xl p-4">
