@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Calendar, MapPin, Clock, Users, ExternalLink, Plus, X, ChevronDown, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface Event {
   id: string;
@@ -239,7 +240,7 @@ export default function EventsPage() {
                   const expanded = expandedId === event.id;
                   const typeInfo = eventTypeLabel[event.event_type] ?? { label: event.event_type, color: "text-gray-400 bg-gray-800" };
                   return (
-                    <div key={event.id} className="glass rounded-2xl overflow-hidden card-hover">
+                    <Link href={`/events/${event.id}`} key={event.id} className="glass rounded-2xl overflow-hidden card-hover block">
                       {/* Color bar */}
                       <div className={cn("h-1.5",
                         event.source === "official_pokemon" ? "bg-yellow-500" :
@@ -323,8 +324,9 @@ export default function EventsPage() {
                         {event.source === "community" && event.profiles && (
                           <p className="text-[10px] text-gray-600">由 {event.profiles.display_name ?? event.profiles.username} 回報</p>
                         )}
+                        <p className="text-[10px] text-brand-500/60 font-medium">點擊查看詳細資訊 →</p>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

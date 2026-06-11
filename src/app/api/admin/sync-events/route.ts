@@ -52,15 +52,17 @@ async function fetchEventDetail(id: string): Promise<Record<string, string> | nu
   const start_time = timeM ? timeM[1] : "";
   const end_time = timeM ? timeM[2] : "";
 
-  // Address: look for postal code + address pattern
-  const addrM = /(\d{3})\s*([^\s<"]{6,50})/.exec(html);
-  const address = addrM ? addrM[2].replace(/[\r\n]/g, "").trim() : "";
+  // Address: look for Taiwan city/district pattern
+  const twCities = "台北市|新北市|桃園市|台中市|台南市|高雄市|基隆市|新竹市|嘉義市|新竹縣|苗栗縣|彰化縣|南投縣|雲林縣|嘉義縣|屏東縣|宜蘭縣|花蓮縣|台東縣|澎湖縣|金門縣|連江縣";
+  const addrM = new RegExp(`((?:${twCities})[^<"\\n]{5,50})`).exec(html);
+  const address = addrM ? addrM[1].trim() : "";
 
-  // Venue: look for text before/near address
-  const venueM = /class="[^"]*(?:shop|venue|place|tournament)[^"]*"[^>]*>([\s\S]{2,40}?)<\//i.exec(html);
+  // Venue: look for shop name near the address or in heading
+  const venueM = /class="[^"]*(?:shop|venue|place|name|title)[^"]*"[^>]*>\s*([\s\S]{2,40}?)\s*<\//i.exec(html)
+    ?? /<(?:h2|h3|strong)[^>]*>\s*([^<]{3,40}(?:店|館|場|空間|卡|牌))\s*<\//i.exec(html);
   const venue_name = venueM
     ? venueM[1].replace(/<[^>]+>/g, "").trim()
-    : (address ? address.slice(0, 15) : `賽場 #${id}`);
+    : (address ? address.slice(0, 12) : `賽場 #${id}`);
 
   // Fee
   const feeM = /[\$＄]?\s*(\d+)\s*(元|円|TWD|NTD)/i.exec(html);
