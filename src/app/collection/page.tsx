@@ -254,28 +254,29 @@ export default function CollectionPage() {
           </button>
           {filtered.map(item => (
             <div key={item.id} className="glass rounded-xl overflow-hidden card-hover group relative">
-              {/* 點擊跳到卡牌詳情 */}
-              <Link href={`/cards/${item.card_id}`} className="block">
-                <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
-                  {item.image_url || item.cards?.image_url ? (
-                    <img
-                      src={item.image_url ?? item.cards?.image_url ?? ""}
-                      alt={item.cards?.name ?? ""}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span>🃏</span>
-                  )}
-                  {item.quantity > 1 && (
-                    <span className="absolute top-2 right-2 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{item.quantity}</span>
-                  )}
-                </div>
-                <div className="p-2.5 space-y-1">
-                  <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name ?? item.custom_name}</div>
-                  <div className="text-[10px] text-gray-500">{item.cards?.game ?? "自訂"} · {item.condition}</div>
-                  {item.notes && <div className="text-[10px] text-gray-600 italic truncate">{item.notes}</div>}
-                </div>
-              </Link>
+              {/* 點擊跳到卡牌詳情（僅限資料庫卡牌） */}
+              {(() => {
+                const inner = (
+                  <>
+                    <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
+                      {item.image_url || item.cards?.image_url ? (
+                        <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
+                      ) : <span>🃏</span>}
+                      {item.quantity > 1 && (
+                        <span className="absolute top-2 right-2 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{item.quantity}</span>
+                      )}
+                    </div>
+                    <div className="p-2.5 space-y-1">
+                      <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name ?? item.custom_name}</div>
+                      <div className="text-[10px] text-gray-500">{item.cards?.game ?? "自訂"} · {item.condition}</div>
+                      {item.notes && <div className="text-[10px] text-gray-600 italic truncate">{item.notes}</div>}
+                    </div>
+                  </>
+                );
+                return item.card_id
+                  ? <Link href={`/cards/${item.card_id}`} className="block">{inner}</Link>
+                  : <div className="block">{inner}</div>;
+              })()}
               {/* 刪除按鈕 */}
               <button onClick={() => removeFromCollection(item.id)}
                 className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-white transition-opacity z-10">
