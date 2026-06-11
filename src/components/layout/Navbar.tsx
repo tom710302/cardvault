@@ -10,9 +10,8 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const navLinks = [
   { href: "/", label: "首頁" },
-  { href: "/cards", label: "卡牌資料庫" },
+  { href: "/card-search", label: "卡牌搜尋" },
   { href: "/community", label: "社群討論" },
-  { href: "/showcase", label: "收藏展示" },
   { href: "/search", label: "資料查詢" },
   { href: "/my-page", label: "我的主頁" },
 ];
