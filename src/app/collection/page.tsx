@@ -108,6 +108,9 @@ export default function CollectionPage() {
                 <input value={cardSearch} onChange={e => searchCards(e.target.value)}
                   placeholder="輸入卡牌名稱..."
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+                {cardSearch.length > 0 && cards.length === 0 && !addForm.card_id && (
+                  <p className="mt-1 text-xs text-gray-500 px-1">找不到符合的卡牌，請試試其他關鍵字</p>
+                )}
                 {cards.length > 0 && (
                   <div className="mt-1 glass rounded-lg overflow-hidden max-h-40 overflow-y-auto">
                     {cards.map(card => (
@@ -120,6 +123,9 @@ export default function CollectionPage() {
                       </button>
                     ))}
                   </div>
+                )}
+                {addForm.card_id && (
+                  <p className="mt-1 text-xs text-green-400 px-1">✓ 已選擇：{cardSearch}</p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
