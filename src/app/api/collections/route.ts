@@ -22,12 +22,15 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
 
   const body = await request.json();
-  const { card_id, condition, quantity, notes, image_url, visibility } = body;
+  const { card_id, custom_name, condition, quantity, notes, image_url, visibility } = body;
+  if (!card_id && !custom_name) return NextResponse.json({ error: "請選擇卡牌或輸入卡牌名稱" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("collections")
     .insert({
-      user_id: user.id, card_id,
+      user_id: user.id,
+      card_id: card_id || null,
+      custom_name: custom_name || null,
       condition: condition ?? "NM",
       quantity: quantity ?? 1,
       notes: notes || null,

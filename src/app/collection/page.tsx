@@ -8,7 +8,7 @@ import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface CollectionItem {
-  id: string; card_id: string; condition: string; quantity: number; notes: string | null;
+  id: string; card_id: string | null; custom_name: string | null; condition: string; quantity: number; notes: string | null;
   image_url: string | null; visibility: string; created_at: string;
   cards: { id: string; name: string; name_en: string | null; game: string; set_name: string | null; rarity: string | null; image_url: string | null } | null;
 }
@@ -24,7 +24,7 @@ export default function CollectionPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardSearch, setCardSearch] = useState("");
-  const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
+  const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public", custom_name: "" });
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
 
@@ -52,16 +52,17 @@ export default function CollectionPage() {
 
   async function addToCollection(e: React.FormEvent) {
     e.preventDefault();
-    if (!addForm.card_id) { alert("請選擇卡牌"); return; }
+    const custom_name = addForm.card_id ? "" : cardSearch.trim();
+    if (!addForm.card_id && !custom_name) { alert("請輸入或選擇卡牌名稱"); return; }
     setSubmitting(true);
     const res = await fetch("/api/collections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(addForm),
+      body: JSON.stringify({ ...addForm, custom_name }),
     });
     if (res.ok) {
       setShowAdd(false);
-      setAddForm({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
+      setAddForm({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public", custom_name: "" });
       setCardSearch(""); setCards([]);
       fetchCollection();
     } else {
@@ -189,7 +190,7 @@ export default function CollectionPage() {
 
               <div className="flex gap-3 justify-end">
                 <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
-                <button type="submit" disabled={submitting || !addForm.card_id}
+                <button type="submit" disabled={submitting || (!addForm.card_id && !cardSearch.trim())}
                   className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
                   {submitting ? "新增中..." : "新增到收藏"}
                 </button>
@@ -270,8 +271,8 @@ export default function CollectionPage() {
                   )}
                 </div>
                 <div className="p-2.5 space-y-1">
-                  <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name}</div>
-                  <div className="text-[10px] text-gray-500">{item.cards?.game} · {item.condition}</div>
+                  <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name ?? item.custom_name}</div>
+                  <div className="text-[10px] text-gray-500">{item.cards?.game ?? "自訂"} · {item.condition}</div>
                   {item.notes && <div className="text-[10px] text-gray-600 italic truncate">{item.notes}</div>}
                 </div>
               </Link>
@@ -293,8 +294,8 @@ export default function CollectionPage() {
                 ) : <span>🃏</span>}
               </Link>
               <div className="flex-1 min-w-0">
-                <Link href={`/cards/${item.card_id}`} className="font-semibold text-white hover:text-brand-300 transition-colors">{item.cards?.name}</Link>
-                <div className="text-xs text-gray-500 mt-0.5">{item.cards?.game} · {item.cards?.set_name} · {item.condition}</div>
+                <div className="font-semibold text-white">{item.cards?.name ?? item.custom_name}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{item.cards?.game ?? "自訂"} · {item.cards?.set_name} · {item.condition}</div>
                 {item.notes && <div className="text-xs text-gray-600 italic mt-1">{item.notes}</div>}
               </div>
               <div className="flex items-center gap-3 shrink-0">
