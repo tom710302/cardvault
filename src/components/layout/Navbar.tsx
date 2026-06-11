@@ -13,8 +13,7 @@ const navLinks = [
   { href: "/cards", label: "卡牌資料庫" },
   { href: "/community", label: "社群討論" },
   { href: "/showcase", label: "收藏展示" },
-  { href: "/stores", label: "店舖查詢" },
-  { href: "/events", label: "賽事查詢" },
+  { href: "/search", label: "資料查詢" },
   { href: "/my-page", label: "我的主頁" },
 ];
 
@@ -107,7 +106,7 @@ export function Navbar() {
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href}
               className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                pathname === link.href ? "bg-brand-600/20 text-brand-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
+                pathname.startsWith(link.href) && (link.href !== "/" || pathname === "/") ? "bg-brand-600/20 text-brand-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
               )}>
               {link.label}
             </Link>
@@ -266,7 +265,7 @@ export function Navbar() {
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
               className={cn("px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                pathname === link.href ? "bg-brand-600/20 text-brand-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
+                pathname.startsWith(link.href) && (link.href !== "/" || pathname === "/") ? "bg-brand-600/20 text-brand-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
               )}>
               {link.label}
             </Link>
