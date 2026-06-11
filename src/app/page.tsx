@@ -16,7 +16,7 @@ const postTypeConfig: Record<string, { label: string; color: string }> = {
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
 export default function HomePage() {
-  const [cards, setCards] = useState<any[]>([]);
+  const [stores, setStores] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ users: "...", cards: "...", posts: "..." });
@@ -24,8 +24,8 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const [cardsRes, postsData, usersData, statsData] = await Promise.all([
-        fetch("/api/cards?limit=4"),
+      const [storesRes, postsData, usersData, statsData] = await Promise.all([
+        fetch("/api/stores"),
         supabase.from("posts").select("*, profiles(username, avatar_url, reputation)").eq("is_deleted", false).order("upvotes", { ascending: false }).limit(4),
         supabase.from("profiles").select("id, username, reputation, created_at").order("reputation", { ascending: false }).limit(5),
         Promise.all([
@@ -35,7 +35,7 @@ export default function HomePage() {
         ]),
       ]);
 
-      if (cardsRes.ok) { const { cards } = await cardsRes.json(); setCards(cards ?? []); }
+      if (storesRes.ok) { const { stores } = await storesRes.json(); setStores((stores ?? []).slice(0, 4)); }
       if (postsData.data) setPosts(postsData.data);
       if (usersData.data) setUsers(usersData.data);
       setStats({
@@ -65,7 +65,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/community" className="btn-primary flex items-center gap-2">加入討論 <ArrowRight className="w-4 h-4" /></Link>
-            <Link href="/cards" className="btn-secondary flex items-center gap-2">瀏覽卡牌資料庫</Link>
+            <Link href="/search?tab=stores" className="btn-secondary flex items-center gap-2">探索店家</Link>
           </div>
         </div>
         <div className="relative mt-10 md:mt-0 md:absolute md:right-10 md:top-1/2 md:-translate-y-1/2 grid grid-cols-3 md:grid-cols-1 gap-3">
@@ -78,27 +78,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 熱門卡牌 */}
+      {/* 熱門店家 */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2"><Flame className="w-5 h-5 text-orange-400" /> 卡牌資料庫</h2>
-          <Link href="/cards" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">查看全部 <ChevronRight className="w-4 h-4" /></Link>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2"><Flame className="w-5 h-5 text-orange-400" /> 熱門店家</h2>
+          <Link href="/search?tab=stores" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">查看全部 <ChevronRight className="w-4 h-4" /></Link>
         </div>
-        {cards.length === 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array(4).fill(0).map((_, i) => <div key={i} className="glass rounded-xl aspect-[5/7] shimmer" />)}
+        {stores.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {Array(4).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-52 shimmer" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {cards.map((card) => (
-              <Link href={`/cards/${card.id}`} key={card.id} className="glass rounded-xl overflow-hidden card-hover group">
-                <div className="aspect-[5/7] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-6xl">
-                  {gameEmoji[card.game] ?? "🃏"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {stores.map((store) => (
+              <Link href={`/stores/${store.id}`} key={store.id} className="glass rounded-xl overflow-hidden card-hover group block">
+                {/* Banner */}
+                <div className="h-32 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
+                  {store.image_url
+                    ? <img src={store.image_url} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    : <div className="w-full h-full flex items-center justify-center text-4xl">🏪</div>
+                  }
+                  {store.is_verified && (
+                    <div className="absolute top-2 left-2 bg-brand-600/90 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                      ✓ 官方驗證
+                    </div>
+                  )}
                 </div>
+                {/* Info */}
                 <div className="p-3 space-y-1.5">
-                  <div className="text-sm font-semibold text-white line-clamp-1">{card.name}</div>
-                  <div className="text-xs text-gray-500">{card.game} · {card.set_name ?? "-"}</div>
-                  {card.rarity && <div className="text-xs text-brand-400">{card.rarity}</div>}
+                  <div className="text-sm font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{store.name}</div>
+                  <div className="text-xs text-gray-500">{store.city}</div>
+                  {store.games?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {store.games.slice(0, 3).map((g: string) => (
+                        <span key={g} className="text-sm">{gameEmoji[g] ?? "🃏"}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Link>
             ))}
