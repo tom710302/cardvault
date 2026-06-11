@@ -270,16 +270,6 @@ function CommunityContent() {
             <div className="glass rounded-xl p-4">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">版塊選擇</h3>
               <ul className="space-y-1">
-                {/* 全部 */}
-                <li>
-                  <button onClick={() => { setActiveBoard("all"); setCardBoardsOpen(false); }}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      activeBoard === "all" ? "bg-brand-600/20 text-brand-300" : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                    )}>
-                    <span>🃏</span> 全部
-                  </button>
-                </li>
-
                 {/* 卡牌討論 accordion */}
                 <li>
                   <button
