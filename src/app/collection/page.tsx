@@ -289,11 +289,11 @@ export default function CollectionPage() {
         <div className="space-y-2">
           {filtered.map(item => (
             <div key={item.id} className="glass rounded-xl p-4 flex items-center gap-4 group">
-              <Link href={`/cards/${item.card_id}`} className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
                 {item.image_url || item.cards?.image_url ? (
                   <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
                 ) : <span>🃏</span>}
-              </Link>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-white">{item.cards?.name ?? item.custom_name}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{item.cards?.game ?? "自訂"} · {item.cards?.set_name} · {item.condition}</div>
