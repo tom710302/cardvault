@@ -15,8 +15,11 @@ export async function GET(request: NextRequest) {
     .order("name")
     .limit(limit);
 
+  const setName = searchParams.get("set_name");
+
   if (search) query = query.ilike("name", `%${search}%`);
   if (game && game !== "全部") query = query.eq("game", game);
+  if (setName) query = query.eq("set_name", setName);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

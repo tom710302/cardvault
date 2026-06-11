@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal } from "lucide-react";
-
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -26,17 +25,43 @@ const gameEmoji: Record<string, string> = {
 export default function CardsPage() {
   const [search, setSearch] = useState("");
   const [game, setGame] = useState("全部");
+  const [selectedSet, setSelectedSet] = useState("全部");
+  const [pokemonSets, setPokemonSets] = useState<string[]>([]);
   const [sort, setSort] = useState("name");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  // 抓寶可夢系列清單
+  useEffect(() => {
+    supabase
+      .from("cards")
+      .select("set_name")
+      .eq("game", "寶可夢")
+      .eq("is_active", true)
+      .not("set_name", "is", null)
+      .then(({ data }) => {
+        if (data) {
+          const seen = new Set<string>();
+          const sets = data.map(d => d.set_name as string).filter(s => s && !seen.has(s) && seen.add(s)).sort();
+          setPokemonSets(sets);
+        }
+      });
+  }, []);
+
+  // 切換遊戲時重設系列
+  function handleGameChange(g: string) {
+    setGame(g);
+    setSelectedSet("全部");
+  }
+
   const fetchCards = useCallback(async () => {
     setLoading(true);
-    let url = `/api/cards?limit=100`;
+    let url = `/api/cards?limit=200`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
     if (game !== "全部") url += `&game=${encodeURIComponent(game)}`;
+    if (game === "寶可夢" && selectedSet !== "全部") url += `&set_name=${encodeURIComponent(selectedSet)}`;
     const res = await fetch(url);
     if (res.ok) {
       let { cards } = await res.json();
@@ -44,7 +69,7 @@ export default function CardsPage() {
       setCards(cards ?? []);
     }
     setLoading(false);
-  }, [search, game, sort]);
+  }, [search, game, selectedSet, sort]);
 
   useEffect(() => {
     const t = setTimeout(fetchCards, 300);
@@ -58,8 +83,7 @@ export default function CardsPage() {
           <h1 className="text-3xl font-bold text-white mb-1">卡牌資料庫</h1>
           <p className="text-gray-400 text-sm">瀏覽官方收錄的實體卡牌資料，點擊查看詳情與價格</p>
         </div>
-        <Link href="/showcase"
-          className="btn-primary flex items-center gap-2 shrink-0 text-sm">
+        <Link href="/showcase" className="btn-primary flex items-center gap-2 shrink-0 text-sm">
           📸 分享我的收藏
         </Link>
       </div>
@@ -93,21 +117,52 @@ export default function CardsPage() {
               className={cn("px-3 py-2 rounded-lg text-sm transition-colors", view === "list" ? "bg-brand-600 text-white" : "btn-secondary")}>☰</button>
           </div>
         </div>
+
+        {/* 遊戲分類 */}
         <div className="flex gap-2 flex-wrap">
           {games.map(g => (
-            <button key={g} onClick={() => setGame(g)}
-              className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+            <button key={g} onClick={() => handleGameChange(g)}
+              className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1",
                 game === g ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
               )}>
               {gameEmoji[g] ?? ""} {g}
+              {g === "寶可夢" && pokemonSets.length > 0 && (
+                <ChevronDown className={cn("w-3 h-3 transition-transform", game === "寶可夢" && "rotate-180")} />
+              )}
             </button>
           ))}
         </div>
+
+        {/* 寶可夢系列子分類（只有選寶可夢時展開） */}
+        {game === "寶可夢" && pokemonSets.length > 0 && (
+          <div className="border-t border-white/10 pt-3 space-y-2">
+            <p className="text-xs text-gray-500 font-medium">📦 版本系列</p>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => setSelectedSet("全部")}
+                className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  selectedSet === "全部" ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                )}>
+                ⚡ 全部系列
+              </button>
+              {pokemonSets.map(set => (
+                <button key={set} onClick={() => setSelectedSet(set)}
+                  className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                    selectedSet === set ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                  )}>
+                  {set}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-500">
           找到 <span className="text-gray-300 font-medium">{cards.length}</span> 張卡牌
+          {game === "寶可夢" && selectedSet !== "全部" && (
+            <span className="ml-2 text-yellow-400 text-xs">· {selectedSet}</span>
+          )}
         </span>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <SlidersHorizontal className="w-3 h-3" />
@@ -124,7 +179,7 @@ export default function CardsPage() {
         <div className="text-center py-16 text-gray-500">
           <span className="text-4xl block mb-3">🃏</span>
           <p>找不到符合條件的卡牌</p>
-          <button onClick={() => { setSearch(""); setGame("全部"); }}
+          <button onClick={() => { setSearch(""); setGame("全部"); setSelectedSet("全部"); }}
             className="btn-secondary mt-3 text-sm">清除篩選</button>
         </div>
       ) : view === "grid" ? (
@@ -140,11 +195,15 @@ export default function CardsPage() {
                 <span className="absolute top-2 right-2 text-xs bg-black/50 px-1.5 py-0.5 rounded text-gray-300">
                   {card.card_type === "sports" ? "運動" : "TCG"}
                 </span>
+                {card.rarity && (
+                  <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-yellow-300 font-bold">
+                    {card.rarity}
+                  </span>
+                )}
               </div>
               <div className="p-2.5 space-y-1">
                 <div className="text-xs font-semibold text-white line-clamp-2 leading-tight">{card.name}</div>
-                <div className="text-[10px] text-gray-500">{card.game}</div>
-                {card.rarity && <div className="text-[10px] text-brand-400">{card.rarity}</div>}
+                <div className="text-[10px] text-gray-500">{card.set_name ?? card.game}</div>
               </div>
             </Link>
           ))}
@@ -163,7 +222,9 @@ export default function CardsPage() {
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-white group-hover:text-brand-300 transition-colors">{card.name}</div>
                 {card.name_en && <div className="text-xs text-gray-500 mt-0.5">{card.name_en}</div>}
-                <div className="text-xs text-gray-500 mt-1">{card.game} · {card.set_name} · {card.rarity}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {card.game}{card.set_name ? ` · ${card.set_name}` : ""}{card.rarity ? ` · ${card.rarity}` : ""}
+                </div>
               </div>
               <div className="shrink-0 text-right">
                 <span className="badge text-xs bg-gray-800 text-gray-400">
