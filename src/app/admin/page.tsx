@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation } from "lucide-react";
+import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 
@@ -12,13 +12,16 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events">("dashboard");
   const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [stores, setStores] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventFilter, setEventFilter] = useState<"pending" | "approved">("pending");
+  const [syncing, setSyncing] = useState(false);
   const [showAddStore, setShowAddStore] = useState(false);
   const [storeAccountForm, setStoreAccountForm] = useState({ email: "", password: "", username: "", store_id: "" });
   const [storeAccountSubmitting, setStoreAccountSubmitting] = useState(false);
@@ -38,6 +41,7 @@ export default function AdminPage() {
     fetchCards();
     fetchStores();
     fetchStoreAccounts();
+    fetchEvents("pending");
   }, []);
 
   async function fetchStats() {
@@ -168,6 +172,45 @@ export default function AdminPage() {
     fetchPosts();
   }
 
+  async function fetchEvents(status: "pending" | "approved") {
+    const { data } = await supabase.from("events")
+      .select("*, profiles(username)")
+      .eq("status", status)
+      .order("start_date", { ascending: true })
+      .limit(100);
+    if (data) setEvents(data);
+  }
+
+  async function approveEvent(id: string) {
+    await supabase.from("events").update({ status: "approved" }).eq("id", id);
+    fetchEvents(eventFilter);
+  }
+
+  async function rejectEvent(id: string) {
+    if (!confirm("確定拒絕並刪除此賽事？")) return;
+    await supabase.from("events").delete().eq("id", id);
+    fetchEvents(eventFilter);
+  }
+
+  async function syncPokemonEvents() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/cron/sync-events", {
+        headers: { authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}` },
+      });
+      const body = await res.json();
+      if (res.ok) {
+        alert(`✅ 同步完成！新增 ${body.synced} 筆，略過 ${body.skipped} 筆（已存在），錯誤 ${body.errors} 筆`);
+        fetchEvents(eventFilter);
+      } else {
+        alert("同步失敗：" + (body.error ?? "未知錯誤"));
+      }
+    } catch {
+      alert("網路錯誤");
+    }
+    setSyncing(false);
+  }
+
   async function toggleBan(id: string, banned: boolean) {
     await supabase.from("profiles").update({ is_banned: !banned }).eq("id", id);
     fetchUsers();
@@ -204,7 +247,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -643,6 +686,85 @@ export default function AdminPage() {
                 )}
               </div>
             </div>}
+          </div>
+        )}
+        {/* Events Management */}
+        {tab === "events" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex gap-2 border-b border-white/10">
+                {([["pending", "⏳ 待審核"], ["approved", "✅ 已上線"]] as const).map(([id, label]) => (
+                  <button key={id} onClick={() => { setEventFilter(id); fetchEvents(id); }}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${eventFilter === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button onClick={syncPokemonEvents} disabled={syncing}
+                className="flex items-center gap-2 text-sm bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 border border-yellow-700/30">
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "同步中..." : "⚡ 同步寶可夢官方賽事"}
+              </button>
+            </div>
+
+            <div className="glass rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-white/10">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-brand-400" />
+                  {eventFilter === "pending" ? "待審核賽事" : "已上線賽事"}（{events.length}）
+                </h3>
+              </div>
+              {events.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 text-sm">
+                  {eventFilter === "pending" ? "目前沒有待審核的賽事" : "還沒有上線的賽事"}
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
+                  {events.map(event => (
+                    <div key={event.id} className="p-4 flex items-start gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="badge text-xs bg-gray-800 text-gray-300">{event.game}</span>
+                          <span className="badge text-xs bg-gray-800 text-gray-400">{event.event_type}</span>
+                          {event.source === "official_pokemon" && (
+                            <span className="badge text-xs text-yellow-400 bg-yellow-900/30">官方同步</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-gray-200">{event.title}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-2">
+                          <Calendar className="w-3 h-3" /> {event.start_date}
+                          {event.start_time && ` ${event.start_time}`}
+                          <MapPin className="w-3 h-3 ml-1" /> {event.venue_name}・{event.city}
+                        </p>
+                        {event.profiles && (
+                          <p className="text-xs text-gray-600">回報者：{event.profiles.username}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        {eventFilter === "pending" && (
+                          <button onClick={() => approveEvent(event.id)}
+                            className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 bg-green-900/20 px-2 py-1 rounded transition-colors">
+                            <CheckCircle className="w-3 h-3" /> 審核通過
+                          </button>
+                        )}
+                        <button onClick={() => rejectEvent(event.id)}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded transition-colors">
+                          <Trash2 className="w-3 h-3" /> {eventFilter === "pending" ? "拒絕" : "刪除"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="glass rounded-xl p-4 flex items-start gap-3 text-sm text-gray-500">
+              <span className="text-lg shrink-0">💡</span>
+              <div>
+                <p className="text-gray-300 font-medium mb-0.5">寶可夢官方賽事同步說明</p>
+                <p>點擊「同步寶可夢官方賽事」從官網抓取近期賽事（前3頁），已存在的賽事會自動略過。Vercel 每天凌晨 2 點也會自動執行一次。</p>
+              </div>
+            </div>
           </div>
         )}
       </div>

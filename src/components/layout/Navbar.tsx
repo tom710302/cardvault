@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/community", label: "社群討論" },
   { href: "/showcase", label: "收藏展示" },
   { href: "/stores", label: "店舖查詢" },
+  { href: "/events", label: "賽事查詢" },
   { href: "/my-page", label: "我的主頁" },
 ];
 
