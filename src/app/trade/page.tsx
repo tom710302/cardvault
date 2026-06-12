@@ -93,7 +93,7 @@ export default function TradePage() {
               <ArrowLeftRight className="w-10 h-10 mx-auto opacity-30" />
               <p className="text-sm">還沒有配對結果</p>
               <p className="text-xs text-gray-600">先到「管理清單」填寫你有的牌和想要的牌</p>
-              <Link href="/trade/my-list" className="btn-primary text-sm inline-flex gap-2 mt-2"><Plus className="w-4 h-4" /> 建立清單</Link>
+              <Link href="/trade/my-list" className="btn-primary text-sm inline-flex gap-2 mt-2"><Plus className="w-4 h-4" /> 管理清單</Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

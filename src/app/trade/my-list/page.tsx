@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ArrowLeftRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 
 const GAMES = ["寶可夢", "MTG", "遊戲王", "NBA", "MLB"];
@@ -12,7 +13,7 @@ const conditionLabel: Record<string, string> = { M: "完美", NM: "近新", LP: 
 const conditionColor: Record<string, string> = { M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400" };
 
 function AddCardForm({ type, onAdd }: { type: "have" | "want"; onAdd: () => void }) {
-  const [form, setForm] = useState({ card_name: "", card_game: "寶可夢", condition: "NM", condition_min: "LP", note: "" });
+  const [form, setForm] = useState({ card_name: "", card_game: "寶可夢", condition: "NM", condition_min: "LP", note: "", image_url: "" });
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -21,19 +22,37 @@ function AddCardForm({ type, onAdd }: { type: "have" | "want"; onAdd: () => void
     setLoading(true);
     const endpoint = type === "have" ? "/api/trade/haves" : "/api/trade/wants";
     const body = type === "have"
-      ? { card_name: form.card_name, card_game: form.card_game, condition: form.condition, note: form.note }
+      ? { card_name: form.card_name, card_game: form.card_game, condition: form.condition, note: form.note, image_url: form.image_url }
       : { card_name: form.card_name, card_game: form.card_game, condition_min: form.condition_min, note: form.note };
     const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { setForm({ card_name: "", card_game: "寶可夢", condition: "NM", condition_min: "LP", note: "" }); onAdd(); }
+    if (res.ok) {
+      setForm({ card_name: "", card_game: "寶可夢", condition: "NM", condition_min: "LP", note: "", image_url: "" });
+      onAdd();
+    }
     setLoading(false);
   }
 
   return (
     <form onSubmit={submit} className="glass rounded-xl p-4 space-y-3">
       <div className="text-sm font-semibold text-white mb-1">{type === "have" ? "+ 新增可換卡牌" : "+ 新增想要的牌"}</div>
+
+      {/* 圖片上傳（只有「我有的牌」才顯示） */}
+      {type === "have" && (
+        <ImageUpload
+          folder="trade"
+          label="上傳卡牌照片"
+          hint="JPG、PNG，最大 5MB（選填）"
+          currentUrl={form.image_url}
+          className="aspect-[4/3]"
+          onUpload={url => setForm(v => ({ ...v, image_url: url }))}
+          onRemove={() => setForm(v => ({ ...v, image_url: "" }))}
+        />
+      )}
+
       <input value={form.card_name} onChange={e => setForm(v => ({ ...v, card_name: e.target.value }))}
         placeholder="卡牌名稱（例：皮卡丘 ex、Black Lotus）"
         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+
       <div className="grid grid-cols-2 gap-2">
         <select value={form.card_game} onChange={e => setForm(v => ({ ...v, card_game: e.target.value }))}
           className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500">
@@ -46,9 +65,11 @@ function AddCardForm({ type, onAdd }: { type: "have" | "want"; onAdd: () => void
           {CONDITIONS.map(c => <option key={c} value={c}>{c} — {conditionLabel[c]}</option>)}
         </select>
       </div>
+
       <input value={form.note} onChange={e => setForm(v => ({ ...v, note: e.target.value }))}
         placeholder="備註（選填）"
         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+
       <button type="submit" disabled={loading || !form.card_name.trim()}
         className="w-full btn-primary text-sm py-2 disabled:opacity-50 flex items-center justify-center gap-2">
         <Plus className="w-4 h-4" /> {loading ? "新增中…" : "新增"}
@@ -101,7 +122,7 @@ export default function MyListPage() {
       <div className="flex items-center gap-3">
         <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeftRight className="w-5 h-5" /></Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">管理換卡清單</h1>
+          <h1 className="text-2xl font-bold text-white">管理清單</h1>
           <p className="text-gray-400 text-sm mt-0.5">填寫後系統會自動幫你尋找配對</p>
         </div>
       </div>
@@ -117,7 +138,11 @@ export default function MyListPage() {
           {loading ? <div className="glass rounded-xl h-24 shimmer" /> : (
             <div className="space-y-2">
               {haves.map(h => (
-                <div key={h.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <div key={h.id} className="glass rounded-xl p-3 flex items-center gap-3">
+                  {h.image_url
+                    ? <img src={h.image_url} alt={h.card_name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                    : <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-2xl shrink-0">🃏</div>
+                  }
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white truncate">{h.card_name}</div>
                     <div className="text-xs text-gray-500">{h.card_game} · <span className={conditionColor[h.condition]}>{h.condition}</span>{h.note && ` · ${h.note}`}</div>
