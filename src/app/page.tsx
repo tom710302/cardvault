@@ -15,52 +15,38 @@ const postTypeConfig: Record<string, { label: string; color: string }> = {
 
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
-const BANNERS = [
-  {
-    badge: "🔍 台灣最大實體卡牌交流社群",
-    headline: "你的珍藏值得",
-    accent: "被世界看見",
-    desc: "集合 TCG 玩家與運動卡收藏家，一起討論、展示、追蹤市場行情。",
-    cta1: { label: "加入討論", href: "/community" },
-    cta2: { label: "探索店家", href: "/search?tab=stores" },
-    bgClass: "from-brand-950 via-gray-900 to-purple-950",
-    glow: "#5c6aff",
-    accentClass: "text-gradient",
-  },
-  {
-    badge: "🔄 換卡系統正式上線",
-    headline: "找到你的",
-    accent: "換卡夥伴",
-    desc: "登記想換的牌，系統自動配對。完成換卡累積信譽，晉升卡牌大師。",
-    cta1: { label: "立即換卡", href: "/trade" },
-    cta2: { label: "查看配對", href: "/trade/matches" },
-    bgClass: "from-emerald-950 via-gray-900 to-cyan-950",
-    glow: "#00d68f",
-    accentClass: "bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent",
-  },
-  {
-    badge: "⭐ 精選收藏家展示",
-    headline: "探索頂級",
-    accent: "收藏家世界",
-    desc: "認識台灣最厲害的 TCG 與運動卡收藏家，看看他們的珍藏。",
-    cta1: { label: "探索社群", href: "/community" },
-    cta2: { label: "精選收藏", href: "/community?tab=showcase" },
-    bgClass: "from-amber-950 via-gray-900 to-orange-950",
-    glow: "#f59e0b",
-    accentClass: "bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent",
-  },
-  {
-    badge: "📢 廣告位招募中",
-    headline: "在這裡展示",
-    accent: "你的品牌",
-    desc: "觸及數千名 TCG 與運動卡收藏家，立即聯繫我們取得黃金曝光位置。",
-    cta1: { label: "聯繫合作", href: "/contact" },
-    cta2: { label: "查看店家", href: "/search?tab=stores" },
-    bgClass: "from-violet-950 via-gray-900 to-fuchsia-950",
-    glow: "#a855f7",
-    accentClass: "bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent",
-  },
-] as const;
+const THEME_MAP = {
+  platform: { bgClass: "from-brand-950 via-gray-900 to-purple-950", glow: "#5c6aff", accentClass: "text-gradient" },
+  trade:    { bgClass: "from-emerald-950 via-gray-900 to-cyan-950",  glow: "#00d68f", accentClass: "bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" },
+  collector:{ bgClass: "from-amber-950 via-gray-900 to-orange-950",  glow: "#f59e0b", accentClass: "bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent" },
+  ad:       { bgClass: "from-violet-950 via-gray-900 to-fuchsia-950",glow: "#a855f7", accentClass: "bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent" },
+} as const;
+type ThemeKey = keyof typeof THEME_MAP;
+
+type BannerData = { badge: string; headline: string; accent: string; desc: string; cta1: { label: string; href: string }; cta2: { label: string; href: string }; bgClass: string; glow: string; accentClass: string; art_type: string; };
+
+function dbRowToBanner(r: any): BannerData {
+  const t = THEME_MAP[(r.theme as ThemeKey) ?? "platform"] ?? THEME_MAP.platform;
+  return {
+    badge: r.badge ?? "",
+    headline: r.headline ?? "",
+    accent: r.accent ?? "",
+    desc: r.description ?? "",
+    cta1: { label: r.cta1_label ?? "了解更多", href: r.cta1_href ?? "/" },
+    cta2: { label: r.cta2_label ?? "", href: r.cta2_href ?? "/" },
+    bgClass: t.bgClass,
+    glow: t.glow,
+    accentClass: t.accentClass,
+    art_type: r.art_type ?? "platform",
+  };
+}
+
+const DEFAULT_BANNERS: BannerData[] = [
+  { badge: "🔍 台灣最大實體卡牌交流社群", headline: "你的珍藏值得", accent: "被世界看見", desc: "集合 TCG 玩家與運動卡收藏家，一起討論、展示、追蹤市場行情。", cta1: { label: "加入討論", href: "/community" }, cta2: { label: "探索店家", href: "/search?tab=stores" }, ...THEME_MAP.platform, art_type: "platform" },
+  { badge: "🔄 換卡系統正式上線", headline: "找到你的", accent: "換卡夥伴", desc: "登記想換的牌，系統自動配對。完成換卡累積信譽，晉升卡牌大師。", cta1: { label: "立即換卡", href: "/trade" }, cta2: { label: "查看配對", href: "/trade/matches" }, ...THEME_MAP.trade, art_type: "trade" },
+  { badge: "⭐ 精選收藏家展示", headline: "探索頂級", accent: "收藏家世界", desc: "認識台灣最厲害的 TCG 與運動卡收藏家，看看他們的珍藏。", cta1: { label: "探索社群", href: "/community" }, cta2: { label: "精選收藏", href: "/community?tab=showcase" }, ...THEME_MAP.collector, art_type: "collector" },
+  { badge: "📢 廣告位招募中", headline: "在這裡展示", accent: "你的品牌", desc: "觸及數千名 TCG 與運動卡收藏家，立即聯繫我們取得黃金曝光位置。", cta1: { label: "聯繫合作", href: "/contact" }, cta2: { label: "查看店家", href: "/search?tab=stores" }, ...THEME_MAP.ad, art_type: "ad" },
+];
 
 // ── Banner decorative art ──────────────────────────────────────────────
 function PlatformArt() {
@@ -193,6 +179,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ users: "...", cards: "...", posts: "..." });
+  const [homeBanners, setHomeBanners] = useState<BannerData[]>(DEFAULT_BANNERS);
   const [activeBanner, setActiveBanner] = useState(0);
   const [bannerFade, setBannerFade] = useState(true);
   const [bannerPaused, setBannerPaused] = useState(false);
@@ -204,10 +191,10 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (bannerPaused) return;
-    const t = setInterval(() => changeBanner((activeBanner + 1) % BANNERS.length), 5000);
+    if (bannerPaused || homeBanners.length === 0) return;
+    const t = setInterval(() => changeBanner((activeBanner + 1) % homeBanners.length), 5000);
     return () => clearInterval(t);
-  }, [bannerPaused, activeBanner]);
+  }, [bannerPaused, activeBanner, homeBanners.length]);
 
   useEffect(() => {
     async function loadData() {
@@ -227,6 +214,14 @@ export default function HomePage() {
         const { haves } = await auctionsRes.json();
         setRecentTrades((haves ?? []).slice(0, 4));
       }
+
+      // Load banners from DB (falls back to DEFAULT_BANNERS if empty)
+      fetch("/api/banners").then(r => r.ok ? r.json() : null).then(data => {
+        if (data?.banners?.length) {
+          setHomeBanners(data.banners.map(dbRowToBanner));
+          setActiveBanner(0);
+        }
+      });
       if (storesRes.ok) { const { stores } = await storesRes.json(); setStores((stores ?? []).slice(0, 4)); }
       if (postsData.data) setPosts(postsData.data);
       if (usersData.data) setUsers(usersData.data);
@@ -244,57 +239,61 @@ export default function HomePage() {
 
       {/* Hero Carousel */}
       <section
-        className={`relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br ${BANNERS[activeBanner].bgClass} transition-all duration-700`}
+        className={`relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br ${homeBanners[activeBanner]?.bgClass ?? "from-brand-950 via-gray-900 to-purple-950"} transition-all duration-700`}
         onMouseEnter={() => setBannerPaused(true)}
         onMouseLeave={() => setBannerPaused(false)}
       >
         {/* Glow overlay */}
         <div className="absolute inset-0 opacity-30 pointer-events-none transition-all duration-700"
-          style={{ backgroundImage: `radial-gradient(circle at 70% 50%, ${BANNERS[activeBanner].glow}44 0%, transparent 60%)` }} />
+          style={{ backgroundImage: `radial-gradient(circle at 70% 50%, ${homeBanners[activeBanner]?.glow ?? "#5c6aff"}44 0%, transparent 60%)` }} />
 
         <div className="relative p-8 md:p-12 flex flex-col md:flex-row md:items-center gap-8">
           {/* Slide content */}
           <div className={`flex-1 min-w-0 space-y-5 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
-            <div className="badge text-brand-300 bg-black/30 border border-white/10 text-sm backdrop-blur-sm inline-flex">
-              {BANNERS[activeBanner].badge}
-            </div>
+            {homeBanners[activeBanner]?.badge && (
+              <div className="badge text-brand-300 bg-black/30 border border-white/10 text-sm backdrop-blur-sm inline-flex">
+                {homeBanners[activeBanner].badge}
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl font-bold leading-tight text-white">
-              {BANNERS[activeBanner].headline}<br />
-              <span className={BANNERS[activeBanner].accentClass}>{BANNERS[activeBanner].accent}</span>
+              {homeBanners[activeBanner]?.headline}<br />
+              <span className={homeBanners[activeBanner]?.accentClass ?? "text-gradient"}>{homeBanners[activeBanner]?.accent}</span>
             </h1>
-            <p className="text-gray-400 text-base md:text-lg leading-relaxed">{BANNERS[activeBanner].desc}</p>
+            <p className="text-gray-400 text-base md:text-lg leading-relaxed">{homeBanners[activeBanner]?.desc}</p>
             <div className="flex flex-wrap gap-3">
-              <Link href={BANNERS[activeBanner].cta1.href} className="btn-primary flex items-center gap-2">
-                {BANNERS[activeBanner].cta1.label} <ArrowRight className="w-4 h-4" />
+              <Link href={homeBanners[activeBanner]?.cta1.href ?? "/"} className="btn-primary flex items-center gap-2">
+                {homeBanners[activeBanner]?.cta1.label} <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href={BANNERS[activeBanner].cta2.href} className="btn-secondary flex items-center gap-2">
-                {BANNERS[activeBanner].cta2.label}
-              </Link>
+              {homeBanners[activeBanner]?.cta2.label && (
+                <Link href={homeBanners[activeBanner].cta2.href} className="btn-secondary flex items-center gap-2">
+                  {homeBanners[activeBanner].cta2.label}
+                </Link>
+              )}
             </div>
             {/* Navigation: prev / dots / next */}
             <div className="flex items-center gap-2 pt-1">
-              <button onClick={() => changeBanner((activeBanner - 1 + BANNERS.length) % BANNERS.length)}
+              <button onClick={() => changeBanner((activeBanner - 1 + homeBanners.length) % homeBanners.length)}
                 className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              {BANNERS.map((_, i) => (
+              {homeBanners.map((_, i) => (
                 <button key={i} onClick={() => changeBanner(i)}
                   className={`rounded-full transition-all duration-300 ${i === activeBanner ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/30 hover:bg-white/60"}`}
                 />
               ))}
-              <button onClick={() => changeBanner((activeBanner + 1) % BANNERS.length)}
+              <button onClick={() => changeBanner((activeBanner + 1) % homeBanners.length)}
                 className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Decorative art – large screens only */}
+          {/* Decorative art – large screens only, driven by art_type field */}
           <div className={`hidden lg:flex items-center justify-center shrink-0 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
-            {activeBanner === 0 && <PlatformArt />}
-            {activeBanner === 1 && <TradeArt />}
-            {activeBanner === 2 && <CollectorArt />}
-            {activeBanner === 3 && <AdArt />}
+            {homeBanners[activeBanner]?.art_type === "platform"  && <PlatformArt />}
+            {homeBanners[activeBanner]?.art_type === "trade"     && <TradeArt />}
+            {homeBanners[activeBanner]?.art_type === "collector" && <CollectorArt />}
+            {homeBanners[activeBanner]?.art_type === "ad"        && <AdArt />}
           </div>
 
           {/* Stats */}

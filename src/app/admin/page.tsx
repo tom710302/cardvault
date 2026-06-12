@@ -12,7 +12,7 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content" | "banners">("dashboard");
   const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -34,7 +34,17 @@ export default function AdminPage() {
   const [showAddCard, setShowAddCard] = useState(false);
   const [cardForm, setCardForm] = useState({ name: "", name_en: "", game: "MTG", card_type: "tcg", set_name: "", rarity: "", description: "" });
   const [cardSubmitting, setCardSubmitting] = useState(false);
+  // Banner management state
+  const [adminBanners, setAdminBanners] = useState<any[]>([]);
+  const [showBannerForm, setShowBannerForm] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+  const [bannerForm, setBannerForm] = useState({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: 0 });
+
   const supabase = createClient();
+
+  useEffect(() => {
+    if (tab === "banners") fetchAdminBanners();
+  }, [tab]);
 
   useEffect(() => {
     fetchStats();
@@ -228,6 +238,52 @@ export default function AdminPage() {
     news: "text-green-400 bg-green-900/30",
   };
 
+  // ── Banner helpers ────────────────────────────────────────────────────
+  const BANNER_THEME_LABELS: Record<string, string> = { platform: "🔵 藍紫", trade: "🟢 綠青", collector: "🟡 琥珀橙", ad: "🟣 紫桃紅" };
+  const BANNER_THEME_PREVIEW: Record<string, string> = { platform: "from-indigo-900 to-purple-900", trade: "from-emerald-900 to-cyan-900", collector: "from-amber-900 to-orange-900", ad: "from-violet-900 to-fuchsia-900" };
+  const BANNER_ART_LABELS: Record<string, string> = { platform: "🃏 卡牌扇形", trade: "⇄ 換卡系統", collector: "👑 收藏家", ad: "📢 廣告位", none: "🚫 無裝飾" };
+
+  async function fetchAdminBanners() {
+    const { data } = await supabase.from("banners").select("*").order("sort_order");
+    setAdminBanners(data ?? []);
+  }
+
+  async function saveBanner() {
+    const payload = { ...bannerForm };
+    if (editingBannerId) {
+      await fetch("/api/banners", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editingBannerId, ...payload }) });
+    } else {
+      await fetch("/api/banners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, sort_order: adminBanners.length }) });
+    }
+    setShowBannerForm(false);
+    setEditingBannerId(null);
+    fetchAdminBanners();
+  }
+
+  async function deleteBanner(id: string) {
+    if (!confirm("確定刪除這個 Banner？")) return;
+    await fetch("/api/banners", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    fetchAdminBanners();
+  }
+
+  async function toggleBannerActive(banner: any) {
+    await fetch("/api/banners", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: banner.id, is_active: !banner.is_active }) });
+    fetchAdminBanners();
+  }
+
+  async function moveBanner(idx: number, dir: number) {
+    const next = [...adminBanners];
+    const target = idx + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setAdminBanners(next);
+    await Promise.all([
+      fetch("/api/banners", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: next[idx].id, sort_order: idx }) }),
+      fetch("/api/banners", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: next[target].id, sort_order: target }) }),
+    ]);
+  }
+  // ── End Banner helpers ────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-gray-950">
       {/* Admin Header */}
@@ -247,7 +303,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"], ["banners", "🖼️ Banner"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -796,6 +852,147 @@ export default function AdminPage() {
                 }
               }}
             />
+          </div>
+        )}
+
+        {/* Banner Management */}
+        {tab === "banners" && (
+          <div className="space-y-5 max-w-3xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">首頁 Banner 管理</h2>
+                <p className="text-sm text-gray-500 mt-0.5">點選編輯可修改所有文字，↑↓ 調整順序</p>
+              </div>
+              <button onClick={() => {
+                setBannerForm({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: adminBanners.length });
+                setEditingBannerId(null);
+                setShowBannerForm(true);
+              }} className="btn-primary text-sm flex items-center gap-2">
+                <Plus className="w-4 h-4" /> 新增 Banner
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="space-y-3">
+              {adminBanners.map((b, i) => (
+                <div key={b.id} className="glass rounded-xl p-4 flex items-center gap-4">
+                  <div className={`w-14 h-10 rounded-lg shrink-0 bg-gradient-to-br ${BANNER_THEME_PREVIEW[b.theme] ?? "from-gray-800 to-gray-900"} flex items-center justify-center text-lg`}>
+                    {BANNER_ART_LABELS[b.art_type]?.split(" ")[0] ?? "🖼️"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-white truncate">{b.headline} <span className="text-brand-400">{b.accent}</span></span>
+                      {!b.is_active && <span className="text-[10px] text-gray-500 bg-gray-800 rounded px-1.5 py-0.5">停用</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">{b.description}</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{BANNER_THEME_LABELS[b.theme]} · {b.cta1_label} → {b.cta1_href}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => moveBanner(i, -1)} disabled={i === 0} title="上移" className="p-1.5 text-gray-500 hover:text-gray-200 disabled:opacity-20 transition-colors">↑</button>
+                    <button onClick={() => moveBanner(i, 1)} disabled={i === adminBanners.length - 1} title="下移" className="p-1.5 text-gray-500 hover:text-gray-200 disabled:opacity-20 transition-colors">↓</button>
+                    <button onClick={() => toggleBannerActive(b)} title={b.is_active ? "停用" : "啟用"}
+                      className={`p-1.5 transition-colors ${b.is_active ? "text-green-400 hover:text-gray-400" : "text-gray-600 hover:text-green-400"}`}>
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => {
+                      setBannerForm({ badge: b.badge ?? "", headline: b.headline, accent: b.accent, description: b.description ?? "", cta1_label: b.cta1_label, cta1_href: b.cta1_href, cta2_label: b.cta2_label ?? "", cta2_href: b.cta2_href ?? "", theme: b.theme, art_type: b.art_type, is_active: b.is_active, sort_order: b.sort_order });
+                      setEditingBannerId(b.id);
+                      setShowBannerForm(true);
+                    }} className="p-1.5 text-brand-400 hover:text-brand-300 transition-colors text-sm">✏️</button>
+                    <button onClick={() => deleteBanner(b.id)} className="p-1.5 text-red-500 hover:text-red-400 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {adminBanners.length === 0 && (
+                <div className="glass rounded-xl p-10 text-center text-gray-500 text-sm">還沒有 Banner，點上方「新增 Banner」建立第一個</div>
+              )}
+            </div>
+
+            {/* Edit / Create Form */}
+            {showBannerForm && (
+              <div className="glass rounded-2xl p-6 space-y-4 border border-brand-500/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-white">{editingBannerId ? "✏️ 編輯 Banner" : "➕ 新增 Banner"}</h3>
+                  <button onClick={() => setShowBannerForm(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-xs text-gray-400 mb-1 block">標籤徽章（可含 emoji，如：🔍 台灣最大...）</label>
+                    <input value={bannerForm.badge} onChange={e => setBannerForm(v => ({ ...v, badge: e.target.value }))}
+                      placeholder="🔍 台灣最大實體卡牌交流社群"
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">主標題第一行（白色）</label>
+                    <input value={bannerForm.headline} onChange={e => setBannerForm(v => ({ ...v, headline: e.target.value }))} required
+                      placeholder="你的珍藏值得"
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">主標題第二行（彩色漸層）</label>
+                    <input value={bannerForm.accent} onChange={e => setBannerForm(v => ({ ...v, accent: e.target.value }))} required
+                      placeholder="被世界看見"
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-xs text-gray-400 mb-1 block">說明文字</label>
+                    <textarea value={bannerForm.description} onChange={e => setBannerForm(v => ({ ...v, description: e.target.value }))} rows={2}
+                      placeholder="集合 TCG 玩家與運動卡收藏家..."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">主按鈕文字</label>
+                    <input value={bannerForm.cta1_label} onChange={e => setBannerForm(v => ({ ...v, cta1_label: e.target.value }))}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">主按鈕連結</label>
+                    <input value={bannerForm.cta1_href} onChange={e => setBannerForm(v => ({ ...v, cta1_href: e.target.value }))}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">次按鈕文字（空白則不顯示）</label>
+                    <input value={bannerForm.cta2_label} onChange={e => setBannerForm(v => ({ ...v, cta2_label: e.target.value }))}
+                      placeholder="探索店家"
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">次按鈕連結</label>
+                    <input value={bannerForm.cta2_href} onChange={e => setBannerForm(v => ({ ...v, cta2_href: e.target.value }))}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">配色主題</label>
+                    <select value={bannerForm.theme} onChange={e => setBannerForm(v => ({ ...v, theme: e.target.value, art_type: e.target.value }))}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                      {Object.entries(BANNER_THEME_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">裝飾圖案</label>
+                    <select value={bannerForm.art_type} onChange={e => setBannerForm(v => ({ ...v, art_type: e.target.value }))}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                      {Object.entries(BANNER_ART_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-400">顯示狀態</label>
+                    <button type="button" onClick={() => setBannerForm(v => ({ ...v, is_active: !v.is_active }))}
+                      className={`text-sm px-3 py-1 rounded-full transition-colors ${bannerForm.is_active ? "bg-green-900/30 text-green-400 border border-green-800/50" : "bg-gray-800 text-gray-500 border border-gray-700"}`}>
+                      {bannerForm.is_active ? "✓ 顯示中" : "✗ 已停用"}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-3 justify-end pt-2 border-t border-white/10">
+                  <button onClick={() => { setShowBannerForm(false); setEditingBannerId(null); }} className="btn-secondary text-sm px-4 py-2">取消</button>
+                  <button onClick={saveBanner} className="btn-primary text-sm px-4 py-2">
+                    {editingBannerId ? "更新 Banner" : "新增 Banner"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
