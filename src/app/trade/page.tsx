@@ -82,7 +82,8 @@ export default function TradePage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const promises: Promise<any>[] = [fetch("/api/trade/recent")];
+      const noStore = { cache: "no-store" as const };
+      const promises: Promise<any>[] = [fetch("/api/trade/recent", noStore)];
       if (user) {
         promises.push(fetch("/api/trade/matches"));
         promises.push(fetch(`/api/trade/haves?user_id=${user.id}`));
