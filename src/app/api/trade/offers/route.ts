@@ -1,34 +1,79 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+const DAILY_LIMITS: Record<string, number> = { "新手": 3, "老手": 10, "收藏家": Infinity, "卡牌大師": Infinity };
+
+function calcTier(completed: number, avgRating: number | null): string {
+  if (completed >= 30 && (avgRating ?? 0) >= 4.5) return "卡牌大師";
+  if (completed >= 10) return "收藏家";
+  if (completed >= 3) return "老手";
+  return "新手";
+}
+
 export async function GET() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
+
   const admin = createAdminClient();
-  const { data } = await admin
+
+  const { data: offers } = await admin
     .from("trade_offers")
-    .select("*, from_profile:from_user_id(id,username,display_name,avatar_url), to_profile:to_user_id(id,username,display_name,avatar_url)")
+    .select("*")
     .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
-  return NextResponse.json({ offers: data ?? [] });
+
+  if (!offers?.length) return NextResponse.json({ offers: [] });
+
+  // Fetch profiles separately
+  const uids = Array.from(new Set(offers.flatMap((o: any) => [o.from_user_id, o.to_user_id])));
+  const { data: profiles } = await admin.from("profiles").select("id, username, display_name, avatar_url").in("id", uids);
+  const pm: Record<string, any> = {};
+  (profiles ?? []).forEach((p: any) => { pm[p.id] = p; });
+
+  return NextResponse.json({
+    offers: offers.map((o: any) => ({
+      ...o,
+      from_profile: pm[o.from_user_id] ?? null,
+      to_profile: pm[o.to_user_id] ?? null,
+    }))
+  });
 }
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
+
   const { to_user_id, offer_have_ids, request_have_ids, message } = await request.json();
   if (!to_user_id || !offer_have_ids?.length) return NextResponse.json({ error: "請選擇要提供的卡牌" }, { status: 400 });
+
   const admin = createAdminClient();
+
+  // Check daily limit based on tier
+  const { data: statsRow } = await admin.from("trade_user_stats").select("completed_trades, avg_rating").eq("user_id", user.id).single();
+  const tier = calcTier(statsRow?.completed_trades ?? 0, statsRow?.avg_rating ?? null);
+  const limit = DAILY_LIMITS[tier] ?? 3;
+
+  if (isFinite(limit)) {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const { count } = await admin.from("trade_offers")
+      .select("id", { count: "exact", head: true })
+      .eq("from_user_id", user.id)
+      .gte("created_at", todayStart.toISOString());
+    if ((count ?? 0) >= limit) {
+      return NextResponse.json({ error: `${tier}每日最多發送 ${limit} 則提案，明天再試！升級等級可解除限制。` }, { status: 429 });
+    }
+  }
+
   const { data: offer, error } = await admin.from("trade_offers").insert({
     from_user_id: user.id, to_user_id, message: message || null,
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const items = [
-    ...(offer_have_ids ?? []).map((id: string) => ({ offer_id: offer.id, have_id: id, side: "offer" })),
-    ...(request_have_ids ?? []).map((id: string) => ({ offer_id: offer.id, have_id: id, side: "request" })),
+    ...(offer_have_ids ?? []).map((id: string) => ({ offer_id: offer.id, have_id: id, direction: "offer" })),
+    ...(request_have_ids ?? []).map((id: string) => ({ offer_id: offer.id, have_id: id, direction: "request" })),
   ];
   if (items.length > 0) await admin.from("trade_offer_items").insert(items);
 
