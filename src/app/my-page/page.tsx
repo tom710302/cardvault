@@ -339,14 +339,12 @@ export default function MyPage() {
               e.target.value = "";
             }} />
             <div
-              className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden cursor-pointer select-none"
+              className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden cursor-pointer select-none touch-none"
               style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none" } as React.CSSProperties}
-              onMouseDown={onAvatarPressStart}
-              onMouseUp={onAvatarPressEnd}
-              onMouseLeave={onAvatarPressCancel}
-              onTouchStart={onAvatarPressStart}
-              onTouchEnd={onAvatarPressEnd}
-              onTouchCancel={onAvatarPressCancel}
+              onPointerDown={onAvatarPressStart}
+              onPointerUp={onAvatarPressEnd}
+              onPointerLeave={onAvatarPressCancel}
+              onPointerCancel={onAvatarPressCancel}
               onContextMenu={e => e.preventDefault()}
             >
               {profile.avatar_url
