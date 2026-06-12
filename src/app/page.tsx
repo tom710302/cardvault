@@ -201,7 +201,7 @@ export default function HomePage() {
       const [auctionsRes, storesRes, postsData, usersData, statsData] = await Promise.all([
         fetch("/api/trade/recent"),
         fetch("/api/stores"),
-        supabase.from("posts").select("*, profiles(username, avatar_url, reputation)").eq("is_deleted", false).order("upvotes", { ascending: false }).limit(4),
+        supabase.from("posts").select("*, profiles(username, avatar_url, reputation)").eq("is_deleted", false).gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: false }).limit(60),
         supabase.from("profiles").select("id, username, reputation, created_at").order("reputation", { ascending: false }).limit(5),
         Promise.all([
           supabase.from("profiles").select("id", { count: "exact", head: true }),
@@ -223,7 +223,17 @@ export default function HomePage() {
         }
       });
       if (storesRes.ok) { const { stores } = await storesRes.json(); setStores((stores ?? []).slice(0, 4)); }
-      if (postsData.data) setPosts(postsData.data);
+      if (postsData.data) {
+        const hotPosts = postsData.data
+          .map(p => {
+            const ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3_600_000;
+            const raw = (p.upvotes ?? 0) * 3 + (p.view_count ?? 0) * 0.1 + (p.comment_count ?? 0) * 1;
+            return { ...p, _hot: raw / Math.pow(ageHours + 2, 1.5) };
+          })
+          .sort((a, b) => b._hot - a._hot)
+          .slice(0, 4);
+        setPosts(hotPosts);
+      }
       if (usersData.data) setUsers(usersData.data);
       setStats({
         users: (statsData[0].count ?? 0).toLocaleString(),
