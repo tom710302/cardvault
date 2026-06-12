@@ -62,6 +62,131 @@ const BANNERS = [
   },
 ] as const;
 
+// ── Banner decorative art ──────────────────────────────────────────────
+function PlatformArt() {
+  return (
+    <div className="relative w-44 h-52 select-none">
+      <div className="absolute inset-0 bg-purple-600/20 rounded-full blur-3xl" />
+      {/* Card back */}
+      <div className="absolute left-2 top-6 w-24 h-32 -rotate-[15deg] rounded-xl shadow-2xl overflow-hidden border border-white/10"
+        style={{ background: "linear-gradient(135deg,#3b1f8c,#1e1254)" }}>
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,.05) 4px,rgba(255,255,255,.05) 8px)" }} />
+        <div className="absolute inset-2 rounded-lg border border-purple-400/20 flex items-center justify-center">
+          <span className="text-2xl opacity-40">🌀</span>
+        </div>
+      </div>
+      {/* Card centre */}
+      <div className="absolute left-10 top-2 w-24 h-32 rotate-[5deg] rounded-xl shadow-2xl overflow-hidden border border-indigo-400/30"
+        style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed 50%,#2e1065)" }}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,.08),transparent)]" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-2">
+          <span className="text-4xl drop-shadow-lg">🃏</span>
+          <div className="text-[9px] text-indigo-200/60 font-bold tracking-widest uppercase">CardVault</div>
+        </div>
+        <div className="absolute inset-x-2 top-1.5 h-px bg-indigo-300/20" />
+        <div className="absolute inset-x-2 bottom-1.5 h-px bg-indigo-300/20" />
+      </div>
+      {/* Card front */}
+      <div className="absolute left-20 top-10 w-20 h-28 rotate-[18deg] rounded-xl shadow-xl overflow-hidden border border-violet-400/20"
+        style={{ background: "linear-gradient(135deg,#7c3aed,#be185d)" }}>
+        <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">⭐</span></div>
+      </div>
+      <div className="absolute top-0 right-2 text-yellow-300 text-lg animate-pulse">✦</div>
+      <div className="absolute top-14 right-0 text-blue-300 text-sm animate-pulse [animation-delay:700ms]">✦</div>
+      <div className="absolute bottom-8 left-0 text-purple-300 text-xs animate-pulse [animation-delay:1400ms]">✦</div>
+      <div className="absolute bottom-2 right-6 text-indigo-300 text-base animate-pulse [animation-delay:300ms]">✦</div>
+    </div>
+  );
+}
+
+function TradeArt() {
+  return (
+    <div className="relative w-48 h-44 select-none flex items-center justify-center">
+      <div className="absolute inset-0 bg-emerald-600/15 rounded-full blur-3xl" />
+      {/* Left card */}
+      <div className="absolute left-0 top-4 w-[72px] h-[100px] -rotate-[10deg] rounded-xl shadow-2xl overflow-hidden border border-emerald-400/30"
+        style={{ background: "linear-gradient(135deg,#065f46,#0e7490)" }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+          <span className="text-3xl">⚡</span>
+          <div className="text-[8px] text-emerald-300/60 font-bold">PIKA</div>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-emerald-900/60 to-transparent" />
+      </div>
+      {/* Swap badge */}
+      <div className="relative z-10 w-11 h-11 rounded-full border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xl font-bold shadow-lg shadow-emerald-900/40"
+        style={{ background: "radial-gradient(circle,rgba(16,185,129,.15),transparent)" }}>⇄</div>
+      {/* Right card */}
+      <div className="absolute right-0 top-4 w-[72px] h-[100px] rotate-[10deg] rounded-xl shadow-2xl overflow-hidden border border-cyan-400/30"
+        style={{ background: "linear-gradient(135deg,#0e7490,#164e63)" }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+          <span className="text-3xl">⚔️</span>
+          <div className="text-[8px] text-cyan-300/60 font-bold">MTG</div>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-cyan-900/60 to-transparent" />
+      </div>
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 text-emerald-400/80 text-xs">✦</div>
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-cyan-400/80 text-xs">✦</div>
+    </div>
+  );
+}
+
+function CollectorArt() {
+  return (
+    <div className="relative w-44 h-52 select-none">
+      <div className="absolute inset-0 bg-amber-500/15 rounded-full blur-3xl" />
+      {/* Crown */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 text-5xl z-20 leading-none drop-shadow-[0_0_16px_rgba(251,191,36,.7)]">👑</div>
+      {/* Card stack */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-36">
+        <div className="absolute bottom-0 left-0 w-[76px] h-[106px] -rotate-[12deg] -translate-x-1 rounded-xl border border-orange-400/20 shadow-xl"
+          style={{ background: "linear-gradient(135deg,#92400e,#431407)" }} />
+        <div className="absolute bottom-0 left-0 translate-x-3 w-[76px] h-[106px] -rotate-[3deg] rounded-xl border border-amber-400/30 shadow-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg,#b45309,#92400e)" }}>
+          <span className="text-3xl">⭐</span>
+        </div>
+        <div className="absolute bottom-0 left-0 translate-x-7 w-[76px] h-[106px] rotate-[8deg] rounded-xl border border-yellow-400/40 shadow-2xl overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#d97706,#b45309)" }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-2">
+            <span className="text-3xl">🏆</span>
+            <div className="text-[8px] text-yellow-200/70 font-bold tracking-wider">COLLECTOR</div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute top-10 right-1 text-yellow-400 text-base animate-pulse">★</div>
+      <div className="absolute top-16 left-1 text-amber-300 text-sm animate-pulse [animation-delay:500ms]">★</div>
+      <div className="absolute top-24 right-0 text-orange-300 text-xs animate-pulse [animation-delay:1000ms]">★</div>
+    </div>
+  );
+}
+
+function AdArt() {
+  return (
+    <div className="relative w-44 h-44 select-none flex items-center justify-center">
+      <div className="absolute inset-0 bg-violet-600/15 rounded-full blur-3xl" />
+      <div className="relative w-36 h-36 rounded-2xl border border-violet-400/40 shadow-2xl overflow-hidden flex flex-col items-center justify-center gap-2"
+        style={{ background: "linear-gradient(135deg,#4c1d95,#6b21a8 50%,#701a75)" }}>
+        <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+        <span className="text-4xl relative z-10">📢</span>
+        <div className="relative z-10 text-center">
+          <div className="text-xs font-bold text-white/90 tracking-wider uppercase">廣告招募</div>
+          <div className="text-[9px] text-violet-200/60 mt-0.5">限量廣告位</div>
+        </div>
+        <div className="relative z-10 border border-fuchsia-400/50 rounded-full px-3 py-0.5 text-[9px] text-fuchsia-200 font-semibold tracking-widest">
+          YOUR AD HERE
+        </div>
+        <div className="absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-violet-400/60" />
+        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-violet-400/60" />
+        <div className="absolute bottom-2 left-2 w-1.5 h-1.5 rounded-full bg-violet-400/60" />
+        <div className="absolute bottom-2 right-2 w-1.5 h-1.5 rounded-full bg-violet-400/60" />
+      </div>
+      <div className="absolute top-0 right-2 text-violet-300 text-xl animate-pulse">✦</div>
+      <div className="absolute bottom-2 left-0 text-fuchsia-300 text-base animate-pulse [animation-delay:600ms]">✦</div>
+      <div className="absolute top-8 left-0 text-purple-300 text-xs animate-pulse [animation-delay:1200ms]">✦</div>
+    </div>
+  );
+}
+// ── End Banner Art ─────────────────────────────────────────────────────
+
 export default function HomePage() {
   const [recentTrades, setRecentTrades] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
@@ -127,18 +252,18 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-30 pointer-events-none transition-all duration-700"
           style={{ backgroundImage: `radial-gradient(circle at 70% 50%, ${BANNERS[activeBanner].glow}44 0%, transparent 60%)` }} />
 
-        <div className="relative p-8 md:p-14">
+        <div className="relative p-8 md:p-12 flex flex-col md:flex-row md:items-center gap-8">
           {/* Slide content */}
-          <div className={`relative max-w-xl space-y-5 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
-            <div className="badge text-brand-300 bg-black/30 border border-white/10 text-sm backdrop-blur-sm">
+          <div className={`flex-1 min-w-0 space-y-5 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
+            <div className="badge text-brand-300 bg-black/30 border border-white/10 text-sm backdrop-blur-sm inline-flex">
               {BANNERS[activeBanner].badge}
             </div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight text-white">
               {BANNERS[activeBanner].headline}<br />
               <span className={BANNERS[activeBanner].accentClass}>{BANNERS[activeBanner].accent}</span>
             </h1>
-            <p className="text-gray-400 text-lg leading-relaxed">{BANNERS[activeBanner].desc}</p>
-            <div className="flex flex-wrap gap-3 pt-1">
+            <p className="text-gray-400 text-base md:text-lg leading-relaxed">{BANNERS[activeBanner].desc}</p>
+            <div className="flex flex-wrap gap-3">
               <Link href={BANNERS[activeBanner].cta1.href} className="btn-primary flex items-center gap-2">
                 {BANNERS[activeBanner].cta1.label} <ArrowRight className="w-4 h-4" />
               </Link>
@@ -146,13 +271,10 @@ export default function HomePage() {
                 {BANNERS[activeBanner].cta2.label}
               </Link>
             </div>
-
             {/* Navigation: prev / dots / next */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => changeBanner((activeBanner - 1 + BANNERS.length) % BANNERS.length)}
-                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0"
-              >
+            <div className="flex items-center gap-2 pt-1">
+              <button onClick={() => changeBanner((activeBanner - 1 + BANNERS.length) % BANNERS.length)}
+                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               {BANNERS.map((_, i) => (
@@ -160,17 +282,23 @@ export default function HomePage() {
                   className={`rounded-full transition-all duration-300 ${i === activeBanner ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/30 hover:bg-white/60"}`}
                 />
               ))}
-              <button
-                onClick={() => changeBanner((activeBanner + 1) % BANNERS.length)}
-                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0"
-              >
+              <button onClick={() => changeBanner((activeBanner + 1) % BANNERS.length)}
+                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Stats – always shown, floated right on desktop */}
-          <div className="relative mt-10 md:mt-0 md:absolute md:right-10 md:top-1/2 md:-translate-y-1/2 grid grid-cols-3 md:grid-cols-1 gap-3">
+          {/* Decorative art – large screens only */}
+          <div className={`hidden lg:flex items-center justify-center shrink-0 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
+            {activeBanner === 0 && <PlatformArt />}
+            {activeBanner === 1 && <TradeArt />}
+            {activeBanner === 2 && <CollectorArt />}
+            {activeBanner === 3 && <AdArt />}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 md:grid-cols-1 gap-3 shrink-0">
             {[
               { value: stats.users + "+", label: "收藏家" },
               { value: stats.cards + "+", label: "卡牌資料" },
