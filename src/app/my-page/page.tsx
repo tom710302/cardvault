@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera } from "lucide-react";
+import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { TrustBadge } from "@/components/trade/TrustBadge";
 
 interface Profile {
   id: string; username: string; display_name: string | null; bio: string | null;
@@ -29,7 +30,8 @@ export default function MyPage() {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [posts, setPosts] = useState<ShowcasePost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"collection" | "posts" | "settings">("collection");
+  const [tab, setTab] = useState<"collection" | "posts" | "trade" | "settings">("collection");
+  const [tradeHaves, setTradeHaves] = useState<any[]>([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({ username: "", display_name: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
@@ -53,6 +55,10 @@ export default function MyPage() {
       // Load posts
       const { data: postsData } = await supabase.from("posts").select("id, title, board, post_type, upvotes, view_count, created_at, image_urls").eq("author_id", user.id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(30);
       if (postsData) setPosts(postsData);
+
+      // Load trade haves
+      const tradeRes = await fetch(`/api/trade/haves?user_id=${user.id}`);
+      if (tradeRes.ok) { const { haves } = await tradeRes.json(); setTradeHaves(haves ?? []); }
     }
     load();
   }, []);
@@ -192,13 +198,16 @@ export default function MyPage() {
 
             {/* Bio */}
             {(profile.display_name || profile.bio) && (
-              <div className="text-sm space-y-0.5">
+              <div className="text-sm space-y-0.5 mb-2">
                 {profile.display_name && profile.display_name !== profile.username && (
                   <p className="font-semibold text-gray-200">{profile.display_name}</p>
                 )}
                 {profile.bio && <p className="text-gray-400 leading-relaxed">{profile.bio}</p>}
               </div>
             )}
+
+            {/* Trust Badge */}
+            <TrustBadge userId={profile.id} size="sm" />
           </div>
         </div>
 
@@ -208,8 +217,11 @@ export default function MyPage() {
             className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
             <Settings className="w-4 h-4" /> 編輯個人資料
           </button>
+          <Link href="/trade/offers" className="px-4 py-2 btn-secondary text-sm flex items-center gap-2">
+            <ArrowLeftRight className="w-4 h-4" /> 換卡信箱
+          </Link>
           <Link href="/collection" className="px-4 py-2 btn-secondary text-sm flex items-center gap-2">
-            <Plus className="w-4 h-4" /> 新增收藏
+            <Plus className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -219,6 +231,7 @@ export default function MyPage() {
         {([
           ["collection", <Grid3X3 className="w-5 h-5" />, "收藏"],
           ["posts", <Star className="w-5 h-5" />, "貼文"],
+          ["trade", <ArrowLeftRight className="w-5 h-5" />, "換卡"],
         ] as const).map(([id, icon, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-t-2 -mt-px transition-colors",
@@ -347,6 +360,61 @@ export default function MyPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Trade Tab */}
+      {tab === "trade" && (
+        <div className="px-4 py-5 space-y-5 max-w-2xl mx-auto">
+          {/* Trust summary */}
+          <div className="glass rounded-2xl p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <ArrowLeftRight className="w-4 h-4 text-brand-400" /> 我的換卡信譽
+            </h2>
+            <TrustBadge userId={profile.id} size="md" />
+            <div className="flex gap-2 pt-1">
+              <Link href="/trade/offers" className="flex-1 btn-secondary text-xs py-2 flex items-center justify-center gap-1.5">
+                換卡信箱
+              </Link>
+              <Link href="/trade/my-list" className="flex-1 btn-primary text-xs py-2 flex items-center justify-center gap-1.5">
+                管理清單
+              </Link>
+            </div>
+          </div>
+
+          {/* My haves */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+              我的可換清單（{tradeHaves.length} 張）
+            </h3>
+            {tradeHaves.length === 0 ? (
+              <div className="glass rounded-xl p-8 text-center text-gray-500 space-y-2">
+                <p className="text-sm">還沒有登記可換的牌</p>
+                <Link href="/trade/my-list" className="btn-primary text-sm inline-flex gap-1.5 mt-1">
+                  <Plus className="w-4 h-4" /> 管理清單
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-0.5">
+                {tradeHaves.map((h: any) => (
+                  <div key={h.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
+                    {h.image_url
+                      ? <img src={h.image_url} alt={h.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-4xl">🃏</div>
+                    }
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                      <p className="text-white text-[10px] font-semibold text-center line-clamp-2">{h.card_name}</p>
+                      <p className="text-gray-300 text-[10px]">{h.card_game} · {h.condition}</p>
+                    </div>
+                  </div>
+                ))}
+                <Link href="/trade/my-list" className="aspect-square bg-gray-900 border border-dashed border-white/10 hover:border-brand-500/50 flex items-center justify-center transition-colors group">
+                  <Plus className="w-8 h-8 text-gray-600 group-hover:text-brand-400 transition-colors" />
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

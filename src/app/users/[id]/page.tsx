@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight } from "lucide-react";
+import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 
 interface Profile {
@@ -26,7 +27,8 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [tab, setTab] = useState<"collection" | "posts">("collection");
+  const [tab, setTab] = useState<"collection" | "posts" | "trade">("collection");
+  const [tradeHaves, setTradeHaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMe, setIsMe] = useState(false);
   const supabase = createClient();
@@ -53,6 +55,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         .select("id, title, board, post_type, upvotes, view_count, created_at, image_urls")
         .eq("author_id", params.id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(30);
       setPosts(postsData ?? []);
+
+      // Load trade haves
+      const tradeRes = await fetch(`/api/trade/haves?user_id=${params.id}`);
+      if (tradeRes.ok) { const { haves } = await tradeRes.json(); setTradeHaves(haves ?? []); }
 
       setLoading(false);
     }
@@ -120,13 +126,16 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
             </div>
 
             {/* Bio */}
-            <div className="text-sm space-y-0.5">
+            <div className="text-sm space-y-0.5 mb-2">
               {profile.display_name && profile.display_name !== profile.username && (
                 <p className="font-semibold text-gray-200">{profile.display_name}</p>
               )}
               {profile.bio && <p className="text-gray-400 leading-relaxed">{profile.bio}</p>}
               <p className="text-gray-600 text-xs">{new Date(profile.created_at).toLocaleDateString("zh-TW")} 加入</p>
             </div>
+
+            {/* Trust Badge */}
+            <TrustBadge userId={params.id} size="sm" />
           </div>
         </div>
 
@@ -144,6 +153,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         {([
           ["collection", <Grid3X3 className="w-5 h-5" />, "收藏"],
           ["posts", <Star className="w-5 h-5" />, "貼文"],
+          ["trade", <ArrowLeftRight className="w-5 h-5" />, "換卡"],
         ] as const).map(([id, icon, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-t-2 -mt-px transition-colors",
@@ -193,6 +203,47 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
             <div className="text-center py-3 text-xs text-gray-600">共 {collection.length} 張公開收藏</div>
           </div>
         )
+      )}
+
+      {/* Trade Tab */}
+      {tab === "trade" && (
+        <div className="px-4 py-5 space-y-4 max-w-2xl mx-auto">
+          {/* Trust detail */}
+          <div className="glass rounded-2xl p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <ArrowLeftRight className="w-4 h-4 text-brand-400" /> 換卡信譽
+            </h2>
+            <TrustBadge userId={params.id} size="md" />
+          </div>
+
+          {/* Haves */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+              可換清單（{tradeHaves.length} 張）
+            </h3>
+            {tradeHaves.length === 0 ? (
+              <div className="glass rounded-xl p-8 text-center text-gray-500 text-sm">
+                還沒有登記可換的牌
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-0.5">
+                {tradeHaves.map((h: any) => (
+                  <div key={h.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
+                    {h.image_url
+                      ? <img src={h.image_url} alt={h.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-4xl">🃏</div>
+                    }
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                      <p className="text-white text-[10px] font-semibold text-center line-clamp-2">{h.card_name}</p>
+                      <p className="text-gray-300 text-[10px]">{h.card_game} · {h.condition}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Posts Grid */}
