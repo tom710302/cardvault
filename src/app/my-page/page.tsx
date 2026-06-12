@@ -621,8 +621,8 @@ export default function MyPage() {
               <span className="flex items-center gap-3"><Eye className="w-4 h-4 text-brand-400" /> 帳號安全 / 密碼</span>
               <span className="text-gray-600">›</span>
             </Link>
-            <Link href="/wishlist" className="flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition-colors text-sm text-gray-300">
-              <span className="flex items-center gap-3">⭐ 想求清單</span>
+            <Link href="/trade" className="flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition-colors text-sm text-gray-300">
+              <span className="flex items-center gap-3">⭐ 想求換卡</span>
               <span className="text-gray-600">›</span>
             </Link>
             <button onClick={async () => { await createClient().auth.signOut(); window.location.href = "/"; }}
