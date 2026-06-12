@@ -1,20 +1,25 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data, error } = await supabase
+  const authClient = createClient();
+  const admin = createAdminClient();
+
+  const { data: { user } } = await authClient.auth.getUser();
+
+  const { data, error } = await admin
     .from("auctions")
-    .select("*, profiles(id, username, display_name, avatar_url)")
+    .select("*")
     .eq("id", params.id)
     .single();
   if (error || !data) return NextResponse.json({ error: "找不到此競標" }, { status: 404 });
 
-  // Only reveal contact_info to the owner or the winner after auction ends
+  const { data: profile } = await admin.from("profiles").select("id, username, display_name, avatar_url").eq("id", data.created_by).single();
+  (data as any).profiles = profile ?? null;
+
   const isOwner = user?.id === data.created_by;
   const isWinner = user?.id === data.winner_id && data.status === "ended";
-  if (!isOwner && !isWinner) data.contact_info = null;
+  if (!isOwner && !isWinner) (data as any).contact_info = null;
 
   return NextResponse.json({ auction: data });
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { TrendingUp, MessageSquare, Users, Star, ArrowRight, Flame, Zap, Trophy, ChevronRight } from "lucide-react";
+import { TrendingUp, MessageSquare, Users, Star, ArrowRight, Flame, Zap, Trophy, ChevronRight, ArrowLeftRight } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,7 @@ const postTypeConfig: Record<string, { label: string; color: string }> = {
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
 export default function HomePage() {
+  const [recentTrades, setRecentTrades] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -24,7 +25,8 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const [storesRes, postsData, usersData, statsData] = await Promise.all([
+      const [auctionsRes, storesRes, postsData, usersData, statsData] = await Promise.all([
+        fetch("/api/trade/recent"),
         fetch("/api/stores"),
         supabase.from("posts").select("*, profiles(username, avatar_url, reputation)").eq("is_deleted", false).order("upvotes", { ascending: false }).limit(4),
         supabase.from("profiles").select("id, username, reputation, created_at").order("reputation", { ascending: false }).limit(5),
@@ -35,6 +37,10 @@ export default function HomePage() {
         ]),
       ]);
 
+      if (auctionsRes.ok) {
+        const { haves } = await auctionsRes.json();
+        setRecentTrades((haves ?? []).slice(0, 4));
+      }
       if (storesRes.ok) { const { stores } = await storesRes.json(); setStores((stores ?? []).slice(0, 4)); }
       if (postsData.data) setPosts(postsData.data);
       if (usersData.data) setUsers(usersData.data);
@@ -77,6 +83,35 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* 換卡系統 */}
+      {recentTrades.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2"><ArrowLeftRight className="w-5 h-5 text-brand-400" /> 換卡系統</h2>
+            <Link href="/trade" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">查看全部 <ChevronRight className="w-4 h-4" /></Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {recentTrades.map((have: any) => (
+              <Link href={`/users/${have.user_id}`} key={have.id} className="glass rounded-xl overflow-hidden card-hover group block">
+                <div className="h-32 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
+                  {have.image_url
+                    ? <img src={have.image_url} alt={have.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    : "🃏"}
+                </div>
+                <div className="p-3 space-y-1">
+                  <div className="text-xs font-semibold text-white line-clamp-2 group-hover:text-brand-300 transition-colors leading-snug">{have.card_name}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">{have.card_game}</span>
+                    <span className="text-[10px] font-bold text-green-400">{have.condition}</span>
+                  </div>
+                  <div className="text-[10px] text-brand-400">🔄 可換</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 熱門店家 */}
       <section>

@@ -12,7 +12,7 @@ const navLinks = [
   { href: "/", label: "首頁" },
   { href: "/community", label: "社群討論" },
   { href: "/search", label: "資料查詢" },
-  { href: "/auctions", label: "競標系統" },
+  { href: "/trade", label: "換卡系統" },
   { href: "/my-page", label: "我的主頁" },
 ];
 
