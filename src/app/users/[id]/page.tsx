@@ -174,31 +174,38 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         ) : (
           <div className="space-y-1">
             <div className="grid grid-cols-3 gap-0.5">
-              {collection.map(item => (
-                <Link key={item.id} href={`/cards/${item.card_id}`}
-                  className="relative aspect-square bg-gray-900 overflow-hidden group">
-                  {item.image_url || item.cards?.image_url ? (
-                    <img
-                      src={item.image_url ?? item.cards?.image_url ?? ""}
-                      alt={item.cards?.name ?? ""}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                      <span className="text-4xl">{gameEmoji[item.cards?.game ?? ""] ?? "🃏"}</span>
+              {collection.map(item => {
+                const inner = (
+                  <>
+                    {item.image_url || item.cards?.image_url ? (
+                      <img
+                        src={item.image_url ?? item.cards?.image_url ?? ""}
+                        alt={item.cards?.name ?? ""}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                        <span className="text-4xl">{gameEmoji[item.cards?.game ?? ""] ?? "🃏"}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                      <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name}</p>
+                      <p className="text-gray-300 text-[10px]">{item.condition}</p>
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                    <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name}</p>
-                    <p className="text-gray-300 text-[10px]">{item.condition}</p>
-                  </div>
-                  {item.quantity > 1 && (
-                    <div className="absolute top-1.5 left-1.5 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      ×{item.quantity}
-                    </div>
-                  )}
-                </Link>
-              ))}
+                    {item.quantity > 1 && (
+                      <div className="absolute top-1.5 left-1.5 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        ×{item.quantity}
+                      </div>
+                    )}
+                  </>
+                );
+                const cls = "relative aspect-square bg-gray-900 overflow-hidden group";
+                return item.card_id ? (
+                  <Link key={item.id} href={`/cards/${item.card_id}`} className={cls}>{inner}</Link>
+                ) : (
+                  <div key={item.id} className={cls}>{inner}</div>
+                );
+              })}
             </div>
             <div className="text-center py-3 text-xs text-gray-600">共 {collection.length} 張公開收藏</div>
           </div>

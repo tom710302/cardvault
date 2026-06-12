@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if ((visibility ?? "public") === "public") {
+    await supabase.rpc("increment_reputation", { user_id: user.id, amount: 1 }).maybeSingle();
+  }
   return NextResponse.json({ collection: data }, { status: 201 });
 }
 

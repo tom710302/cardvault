@@ -46,5 +46,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ error: "無權限" }, { status: 403 });
   const { error } = await admin.from("trade_offers").update({ status, updated_at: new Date().toISOString() }).eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (status === "completed") {
+    await Promise.all([
+      admin.rpc("increment_reputation", { user_id: offer.from_user_id, amount: 10 }).maybeSingle(),
+      admin.rpc("increment_reputation", { user_id: offer.to_user_id, amount: 10 }).maybeSingle(),
+    ]);
+  }
   return NextResponse.json({ success: true });
 }

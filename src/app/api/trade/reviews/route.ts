@@ -22,5 +22,8 @@ export async function POST(request: NextRequest) {
   const { error } = await admin.from("trade_reviews").insert({ offer_id, reviewer_id: user.id, reviewee_id, rating, comment: comment ?? null });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  if (rating === 5) {
+    await admin.rpc("increment_reputation", { user_id: reviewee_id, amount: 5 }).maybeSingle();
+  }
   return NextResponse.json({ success: true });
 }

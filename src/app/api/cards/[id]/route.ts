@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data, error } = await supabase.from("cards").select("*").eq("id", params.id).single();
-  if (error) return NextResponse.json({ error: "找不到卡牌" }, { status: 404 });
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("cards").select("*").eq("id", params.id).single();
+  if (error || !data) return NextResponse.json({ error: "找不到卡牌" }, { status: 404 });
   return NextResponse.json({ card: data });
 }
 
