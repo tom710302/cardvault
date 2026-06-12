@@ -6,20 +6,32 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
   const admin = createAdminClient();
-  const { data: offer } = await admin
-    .from("trade_offers")
-    .select("*, from_profile:from_user_id(id,username,display_name,avatar_url), to_profile:to_user_id(id,username,display_name,avatar_url)")
-    .eq("id", params.id).single();
+
+  const { data: offer } = await admin.from("trade_offers").select("*").eq("id", params.id).single();
   if (!offer) return NextResponse.json({ error: "找不到此提案" }, { status: 404 });
   if (offer.from_user_id !== user.id && offer.to_user_id !== user.id)
     return NextResponse.json({ error: "無權限" }, { status: 403 });
 
-  const { data: items } = await admin
-    .from("trade_offer_items")
-    .select("*, have:have_id(*)")
-    .eq("offer_id", params.id);
+  // Fetch profiles separately
+  const uids = Array.from(new Set([offer.from_user_id, offer.to_user_id]));
+  const { data: profiles } = await admin.from("profiles").select("id, username, display_name, avatar_url").in("id", uids);
+  const pm: Record<string, any> = {};
+  (profiles ?? []).forEach((p: any) => { pm[p.id] = p; });
 
-  return NextResponse.json({ offer: { ...offer, items: items ?? [] } });
+  const { data: items } = await admin.from("trade_offer_items").select("*, have:have_id(*)").eq("offer_id", params.id);
+
+  // Check if current user already reviewed
+  const { data: myReview } = await admin.from("trade_reviews").select("id").eq("offer_id", params.id).eq("reviewer_id", user.id).single();
+
+  return NextResponse.json({
+    offer: {
+      ...offer,
+      from_profile: pm[offer.from_user_id] ?? null,
+      to_profile: pm[offer.to_user_id] ?? null,
+      items: items ?? [],
+      has_my_review: !!myReview,
+    }
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, Star, ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { TrustBadge } from "@/components/trade/TrustBadge";
 
 const conditionColor: Record<string, string> = { M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400" };
 
@@ -80,6 +81,7 @@ function MatchCard({ match }: { match: any }) {
           <div>
             <div className="font-semibold text-white">{match.user?.display_name ?? match.user?.username}</div>
             {match.perfectMatch && <div className="text-xs text-yellow-400 flex items-center gap-1"><Star className="w-3 h-3" /> 完美配對</div>}
+            <TrustBadge userId={match.uid} size="sm" />
           </div>
         </div>
         <Link href={`/users/${match.uid}`} className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 shrink-0">
