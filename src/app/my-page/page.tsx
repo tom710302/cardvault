@@ -46,6 +46,7 @@ export default function MyPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const avatarLongPressedRef = useRef(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
@@ -75,9 +76,10 @@ export default function MyPage() {
     load();
   }, [fetchCollection]);
 
-  function onAvatarPressStart(e: React.MouseEvent | React.TouchEvent) {
-    e.preventDefault();
+  function onAvatarPressStart() {
+    avatarLongPressedRef.current = false;
     avatarTimerRef.current = setTimeout(() => {
+      avatarLongPressedRef.current = true;
       avatarTimerRef.current = null;
       setShowAvatarLightbox(true);
     }, 2000);
@@ -86,14 +88,18 @@ export default function MyPage() {
     if (avatarTimerRef.current !== null) {
       clearTimeout(avatarTimerRef.current);
       avatarTimerRef.current = null;
+    }
+    if (!avatarLongPressedRef.current) {
       avatarFileRef.current?.click();
     }
+    avatarLongPressedRef.current = false;
   }
   function onAvatarPressCancel() {
     if (avatarTimerRef.current !== null) {
       clearTimeout(avatarTimerRef.current);
       avatarTimerRef.current = null;
     }
+    avatarLongPressedRef.current = false;
   }
 
   async function handleAvatarUpload(url: string) {
@@ -334,12 +340,14 @@ export default function MyPage() {
             }} />
             <div
               className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden cursor-pointer select-none"
+              style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none" } as React.CSSProperties}
               onMouseDown={onAvatarPressStart}
               onMouseUp={onAvatarPressEnd}
               onMouseLeave={onAvatarPressCancel}
               onTouchStart={onAvatarPressStart}
               onTouchEnd={onAvatarPressEnd}
               onTouchCancel={onAvatarPressCancel}
+              onContextMenu={e => e.preventDefault()}
             >
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover pointer-events-none" />
