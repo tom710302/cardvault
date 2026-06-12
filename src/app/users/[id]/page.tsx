@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, X } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 
@@ -31,6 +31,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMe, setIsMe] = useState(false);
+  const [lightbox, setLightbox] = useState<CollectionItem | null>(null);
   const supabase = createClient();
   const router = useRouter();
 
@@ -81,6 +82,33 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
   return (
     <div className="max-w-3xl mx-auto">
+
+      {/* Lightbox for custom collection items */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+          onClick={() => setLightbox(null)}>
+          <div className="relative max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setLightbox(null)}
+              className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-gray-800 border border-white/20 flex items-center justify-center text-gray-300 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <div className="glass rounded-2xl overflow-hidden">
+              {lightbox.image_url && (
+                <img src={lightbox.image_url} alt={(lightbox.cards as any)?.name ?? "收藏卡牌"}
+                  className="w-full object-contain max-h-[70vh]" />
+              )}
+              <div className="p-4 space-y-1">
+                <p className="text-white font-semibold">{(lightbox.cards as any)?.name ?? "自訂卡牌"}</p>
+                <div className="flex gap-3 text-sm text-gray-400">
+                  <span>品相：{lightbox.condition}</span>
+                  {lightbox.quantity > 1 && <span>數量：{lightbox.quantity}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Back */}
       <div className="px-4 pt-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors">
@@ -199,11 +227,11 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                     )}
                   </>
                 );
-                const cls = "relative aspect-square bg-gray-900 overflow-hidden group";
+                const cls = "relative aspect-square bg-gray-900 overflow-hidden group cursor-pointer";
                 return item.card_id ? (
                   <Link key={item.id} href={`/cards/${item.card_id}`} className={cls}>{inner}</Link>
                 ) : (
-                  <div key={item.id} className={cls}>{inner}</div>
+                  <div key={item.id} className={cls} onClick={() => setLightbox(item)}>{inner}</div>
                 );
               })}
             </div>
