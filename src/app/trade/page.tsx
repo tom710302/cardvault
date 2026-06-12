@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, Plus, Zap, Users, ChevronRight, Star, Pencil, Send, Lock, X, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 const conditionColor: Record<string, string> = { M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400" };
@@ -15,6 +16,7 @@ function QuickAddCard({ onAdd, onCancel }: { onAdd: () => void; onCancel: () => 
   const [name, setName] = useState("");
   const [game, setGame] = useState("寶可夢");
   const [condition, setCondition] = useState("NM");
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -24,15 +26,25 @@ function QuickAddCard({ onAdd, onCancel }: { onAdd: () => void; onCancel: () => 
     await fetch("/api/trade/haves", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ card_name: name.trim(), card_game: game, condition }),
+      body: JSON.stringify({ card_name: name.trim(), card_game: game, condition, image_url: imageUrl || null }),
     });
     onAdd();
     setLoading(false);
   }
 
   return (
-    <form onSubmit={submit} className="glass rounded-xl overflow-hidden flex flex-col" style={{ minHeight: "9rem" }}>
-      <div className="flex-1 p-2.5 space-y-1.5">
+    <form onSubmit={submit} className="glass rounded-xl overflow-hidden flex flex-col">
+      {/* 圖片上傳區 */}
+      <ImageUpload
+        folder="trade"
+        currentUrl={imageUrl}
+        className="aspect-[4/3] rounded-none"
+        onUpload={url => setImageUrl(url)}
+        onRemove={() => setImageUrl("")}
+      />
+
+      {/* 欄位 */}
+      <div className="p-2.5 space-y-1.5">
         <input
           autoFocus
           value={name}
@@ -51,6 +63,8 @@ function QuickAddCard({ onAdd, onCancel }: { onAdd: () => void; onCancel: () => 
           </select>
         </div>
       </div>
+
+      {/* 確認 / 取消 */}
       <div className="flex border-t border-white/5">
         <button type="button" onClick={onCancel}
           className="flex-1 flex items-center justify-center py-2 text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors">
