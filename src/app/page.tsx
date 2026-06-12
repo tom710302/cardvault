@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { TrendingUp, MessageSquare, Users, Star, ArrowRight, Flame, Zap, Trophy, ChevronRight, ArrowLeftRight } from "lucide-react";
+import { TrendingUp, MessageSquare, Users, Star, ArrowRight, Flame, Zap, Trophy, ChevronRight, ChevronLeft, ArrowLeftRight } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,13 +15,74 @@ const postTypeConfig: Record<string, { label: string; color: string }> = {
 
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
+const BANNERS = [
+  {
+    badge: "🔍 台灣最大實體卡牌交流社群",
+    headline: "你的珍藏值得",
+    accent: "被世界看見",
+    desc: "集合 TCG 玩家與運動卡收藏家，一起討論、展示、追蹤市場行情。",
+    cta1: { label: "加入討論", href: "/community" },
+    cta2: { label: "探索店家", href: "/search?tab=stores" },
+    bgClass: "from-brand-950 via-gray-900 to-purple-950",
+    glow: "#5c6aff",
+    accentClass: "text-gradient",
+  },
+  {
+    badge: "🔄 換卡系統正式上線",
+    headline: "找到你的",
+    accent: "換卡夥伴",
+    desc: "登記想換的牌，系統自動配對。完成換卡累積信譽，晉升卡牌大師。",
+    cta1: { label: "立即換卡", href: "/trade" },
+    cta2: { label: "查看配對", href: "/trade/matches" },
+    bgClass: "from-emerald-950 via-gray-900 to-cyan-950",
+    glow: "#00d68f",
+    accentClass: "bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent",
+  },
+  {
+    badge: "⭐ 精選收藏家展示",
+    headline: "探索頂級",
+    accent: "收藏家世界",
+    desc: "認識台灣最厲害的 TCG 與運動卡收藏家，看看他們的珍藏。",
+    cta1: { label: "探索社群", href: "/community" },
+    cta2: { label: "精選收藏", href: "/community?tab=showcase" },
+    bgClass: "from-amber-950 via-gray-900 to-orange-950",
+    glow: "#f59e0b",
+    accentClass: "bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent",
+  },
+  {
+    badge: "📢 廣告位招募中",
+    headline: "在這裡展示",
+    accent: "你的品牌",
+    desc: "觸及數千名 TCG 與運動卡收藏家，立即聯繫我們取得黃金曝光位置。",
+    cta1: { label: "聯繫合作", href: "/contact" },
+    cta2: { label: "查看店家", href: "/search?tab=stores" },
+    bgClass: "from-violet-950 via-gray-900 to-fuchsia-950",
+    glow: "#a855f7",
+    accentClass: "bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent",
+  },
+] as const;
+
 export default function HomePage() {
   const [recentTrades, setRecentTrades] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ users: "...", cards: "...", posts: "..." });
+  const [activeBanner, setActiveBanner] = useState(0);
+  const [bannerFade, setBannerFade] = useState(true);
+  const [bannerPaused, setBannerPaused] = useState(false);
   const supabase = createClient();
+
+  function changeBanner(idx: number) {
+    setBannerFade(false);
+    setTimeout(() => { setActiveBanner(idx); setBannerFade(true); }, 280);
+  }
+
+  useEffect(() => {
+    if (bannerPaused) return;
+    const t = setInterval(() => changeBanner((activeBanner + 1) % BANNERS.length), 5000);
+    return () => clearInterval(t);
+  }, [bannerPaused, activeBanner]);
 
   useEffect(() => {
     async function loadData() {
@@ -56,31 +117,71 @@ export default function HomePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-16">
 
-      {/* Hero */}
-      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-brand-950 via-gray-900 to-purple-950 border border-white/10 p-8 md:p-14">
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, #5c6aff33 0%, transparent 60%)" }} />
-        <div className="relative max-w-2xl space-y-5">
-          <div className="badge text-brand-300 bg-brand-900/50 border border-brand-700/50 text-sm">
-            🔍 台灣最大實體卡牌交流社群
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold leading-tight text-white">
-            你的珍藏值得<br /><span className="text-gradient">被世界看見</span>
-          </h1>
-          <p className="text-gray-400 text-lg leading-relaxed">
-            集合 TCG 玩家與運動卡收藏家，一起討論、展示、追蹤市場行情。
-          </p>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link href="/community" className="btn-primary flex items-center gap-2">加入討論 <ArrowRight className="w-4 h-4" /></Link>
-            <Link href="/search?tab=stores" className="btn-secondary flex items-center gap-2">探索店家</Link>
-          </div>
-        </div>
-        <div className="relative mt-10 md:mt-0 md:absolute md:right-10 md:top-1/2 md:-translate-y-1/2 grid grid-cols-3 md:grid-cols-1 gap-3">
-          {[{ value: stats.users + "+", label: "收藏家" }, { value: stats.cards + "+", label: "卡牌資料" }, { value: stats.posts + "+", label: "社群文章" }].map(({ value, label }) => (
-            <div key={label} className="glass rounded-xl p-4 text-center">
-              <div className="text-xl font-bold text-white">{value}</div>
-              <div className="text-xs text-gray-500">{label}</div>
+      {/* Hero Carousel */}
+      <section
+        className={`relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br ${BANNERS[activeBanner].bgClass} transition-all duration-700`}
+        onMouseEnter={() => setBannerPaused(true)}
+        onMouseLeave={() => setBannerPaused(false)}
+      >
+        {/* Glow overlay */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none transition-all duration-700"
+          style={{ backgroundImage: `radial-gradient(circle at 70% 50%, ${BANNERS[activeBanner].glow}44 0%, transparent 60%)` }} />
+
+        <div className="relative p-8 md:p-14">
+          {/* Slide content */}
+          <div className={`relative max-w-xl space-y-5 transition-opacity duration-[280ms] ${bannerFade ? "opacity-100" : "opacity-0"}`}>
+            <div className="badge text-brand-300 bg-black/30 border border-white/10 text-sm backdrop-blur-sm">
+              {BANNERS[activeBanner].badge}
             </div>
-          ))}
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight text-white">
+              {BANNERS[activeBanner].headline}<br />
+              <span className={BANNERS[activeBanner].accentClass}>{BANNERS[activeBanner].accent}</span>
+            </h1>
+            <p className="text-gray-400 text-lg leading-relaxed">{BANNERS[activeBanner].desc}</p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Link href={BANNERS[activeBanner].cta1.href} className="btn-primary flex items-center gap-2">
+                {BANNERS[activeBanner].cta1.label} <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href={BANNERS[activeBanner].cta2.href} className="btn-secondary flex items-center gap-2">
+                {BANNERS[activeBanner].cta2.label}
+              </Link>
+            </div>
+
+            {/* Navigation: prev / dots / next */}
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={() => changeBanner((activeBanner - 1 + BANNERS.length) % BANNERS.length)}
+                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              {BANNERS.map((_, i) => (
+                <button key={i} onClick={() => changeBanner(i)}
+                  className={`rounded-full transition-all duration-300 ${i === activeBanner ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/30 hover:bg-white/60"}`}
+                />
+              ))}
+              <button
+                onClick={() => changeBanner((activeBanner + 1) % BANNERS.length)}
+                className="w-7 h-7 glass rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Stats – always shown, floated right on desktop */}
+          <div className="relative mt-10 md:mt-0 md:absolute md:right-10 md:top-1/2 md:-translate-y-1/2 grid grid-cols-3 md:grid-cols-1 gap-3">
+            {[
+              { value: stats.users + "+", label: "收藏家" },
+              { value: stats.cards + "+", label: "卡牌資料" },
+              { value: stats.posts + "+", label: "社群文章" },
+            ].map(({ value, label }) => (
+              <div key={label} className="glass rounded-xl p-4 text-center">
+                <div className="text-xl font-bold text-white">{value}</div>
+                <div className="text-xs text-gray-500">{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
