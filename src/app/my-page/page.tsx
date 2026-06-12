@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,6 +44,9 @@ export default function MyPage() {
   const [editForm, setEditForm] = useState({ username: "", display_name: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
+  const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
 
@@ -71,6 +74,27 @@ export default function MyPage() {
     }
     load();
   }, [fetchCollection]);
+
+  function onAvatarPressStart(e: React.MouseEvent | React.TouchEvent) {
+    e.preventDefault();
+    avatarTimerRef.current = setTimeout(() => {
+      avatarTimerRef.current = null;
+      setShowAvatarLightbox(true);
+    }, 2000);
+  }
+  function onAvatarPressEnd() {
+    if (avatarTimerRef.current !== null) {
+      clearTimeout(avatarTimerRef.current);
+      avatarTimerRef.current = null;
+      avatarFileRef.current?.click();
+    }
+  }
+  function onAvatarPressCancel() {
+    if (avatarTimerRef.current !== null) {
+      clearTimeout(avatarTimerRef.current);
+      avatarTimerRef.current = null;
+    }
+  }
 
   async function handleAvatarUpload(url: string) {
     if (!profile) return;
@@ -141,6 +165,22 @@ export default function MyPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
+
+      {/* Avatar Lightbox */}
+      {showAvatarLightbox && profile.avatar_url && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setShowAvatarLightbox(false)}>
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowAvatarLightbox(false)}
+              className="absolute -top-4 -right-4 w-9 h-9 rounded-full bg-gray-800 border border-white/20 flex items-center justify-center text-gray-300 hover:text-white z-10">
+              <X className="w-4 h-4" />
+            </button>
+            <img src={profile.avatar_url} alt={profile.username}
+              className="w-72 h-72 sm:w-96 sm:h-96 rounded-full object-cover border-4 border-white/20 shadow-2xl" />
+          </div>
+        </div>
+      )}
+
       {/* Edit Profile Modal */}
       {showEditProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
@@ -278,30 +318,38 @@ export default function MyPage() {
       {/* IG-style Profile Header */}
       <div className="px-4 pt-8 pb-4 space-y-5">
         <div className="flex items-start gap-6">
-          {/* Avatar - 可點擊上傳 */}
+          {/* Avatar - 點擊換頭貼，長按2秒放大 */}
           <div className="relative shrink-0 group/avatar">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden">
+            <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const formData = new FormData();
+              formData.append("file", file);
+              formData.append("folder", "avatars");
+              setUploadingAvatar(true);
+              const res = await fetch("/api/upload", { method: "POST", body: formData });
+              if (res.ok) { const { url } = await res.json(); await handleAvatarUpload(url); }
+              setUploadingAvatar(false);
+              e.target.value = "";
+            }} />
+            <div
+              className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden cursor-pointer select-none"
+              onMouseDown={onAvatarPressStart}
+              onMouseUp={onAvatarPressEnd}
+              onMouseLeave={onAvatarPressCancel}
+              onTouchStart={onAvatarPressStart}
+              onTouchEnd={onAvatarPressEnd}
+              onTouchCancel={onAvatarPressCancel}
+            >
               {profile.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover pointer-events-none" />
                 : profile.username?.[0]?.toUpperCase() ?? "?"}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                {uploadingAvatar
+                  ? <span className="text-white text-xs">上傳中...</span>
+                  : <Camera className="w-6 h-6 text-white" />}
+              </div>
             </div>
-            {/* Upload overlay */}
-            <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
-              {uploadingAvatar
-                ? <span className="text-white text-xs">上傳中...</span>
-                : <Camera className="w-6 h-6 text-white" />}
-              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("folder", "avatars");
-                setUploadingAvatar(true);
-                const res = await fetch("/api/upload", { method: "POST", body: formData });
-                if (res.ok) { const { url } = await res.json(); await handleAvatarUpload(url); }
-                setUploadingAvatar(false);
-              }} />
-            </label>
           </div>
 
           {/* Stats */}
