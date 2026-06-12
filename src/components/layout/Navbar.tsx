@@ -232,9 +232,9 @@ export function Navbar() {
                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
                     <BookmarkPlus className="w-4 h-4" /> 我的收藏
                   </Link>
-                  <Link href="/wishlist" onClick={() => setDropdownOpen(false)}
+                  <Link href="/trade" onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors">
-                    ⭐ 想求清單
+                    ⭐ 想求換卡
                   </Link>
                   <button onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-red-400 transition-colors">
