@@ -25,7 +25,8 @@ interface Post {
 interface ShowcaseUser {
   id: string; username: string; display_name: string | null;
   reputation: number; avatar_url: string | null;
-  collection_count: number; collections: any[];
+  collection_count: number; trade_tier: string; is_featured: boolean;
+  preview_images: string[];
 }
 
 const sortTabs = [
@@ -119,26 +120,11 @@ function CommunityContent() {
   useEffect(() => {
     if (tab !== "showcase") return;
     setShowcaseLoading(true);
-    async function loadShowcase() {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, reputation, avatar_url")
-        .order("reputation", { ascending: false })
-        .limit(24);
-      if (!profiles) { setShowcaseLoading(false); return; }
-      const withCollections = await Promise.all(profiles.map(async p => {
-        const { data: cols, count } = await supabase
-          .from("collections")
-          .select("*, cards(id, name, game, rarity, image_url)", { count: "exact" })
-          .eq("user_id", p.id)
-          .eq("visibility", "public")
-          .limit(4);
-        return { ...p, collection_count: count ?? 0, collections: cols ?? [] };
-      }));
-      setShowcaseUsers(withCollections.filter(u => u.collection_count > 0));
-      setShowcaseLoading(false);
-    }
-    loadShowcase();
+    fetch("/api/community/showcase")
+      .then(r => r.json())
+      .then(({ users }) => { setShowcaseUsers(users ?? []); })
+      .catch(() => {})
+      .finally(() => setShowcaseLoading(false));
   }, [tab]);
 
   async function submitPost(e: React.FormEvent) {
@@ -163,7 +149,7 @@ function CommunityContent() {
   }
 
   const filteredShowcaseUsers = showcaseFilter === "top"
-    ? showcaseUsers.filter(u => u.reputation >= 100)
+    ? showcaseUsers.filter(u => u.is_featured)
     : showcaseUsers;
 
   return (
@@ -436,6 +422,18 @@ function CommunityContent() {
             <p className="text-xs text-gray-500">{filteredShowcaseUsers.length} 位收藏家公開了他們的收藏</p>
           </div>
 
+          {/* 精選說明 */}
+          {showcaseFilter === "top" && (
+            <div className="glass rounded-xl px-4 py-3 flex items-start gap-3 text-xs text-gray-500">
+              <span className="text-yellow-400 text-base shrink-0">⭐</span>
+              <span>
+                滿足以下任一條件即可<span className="text-yellow-400 font-medium">自動</span>獲得精選：
+                公開收藏 ≥ 5 張，或換卡等級達到
+                <span className="text-yellow-400"> ⭐ 收藏家</span>（完成 10 次換卡）以上
+              </span>
+            </div>
+          )}
+
           {showcaseLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array(6).fill(0).map((_, i) => <div key={i} className="glass rounded-2xl h-56 shimmer" />)}
@@ -443,10 +441,12 @@ function CommunityContent() {
           ) : filteredShowcaseUsers.length === 0 ? (
             <div className="text-center py-20 text-gray-500 space-y-3">
               <Package className="w-12 h-12 mx-auto opacity-30" />
-              <p>還沒有收藏家公開他們的收藏</p>
-              {user
-                ? <Link href="/collection" className="btn-primary text-sm inline-flex gap-2"><Package className="w-4 h-4" /> 新增我的收藏</Link>
-                : <Link href="/auth/login" className="btn-secondary text-sm inline-flex">登入後新增收藏</Link>
+              <p>{showcaseFilter === "top" ? "目前還沒有精選收藏家" : "還沒有收藏家公開他們的收藏"}</p>
+              {showcaseFilter === "top"
+                ? <p className="text-xs text-gray-600">公開收藏 5 張以上，或完成 10 次換卡即可加入</p>
+                : user
+                  ? <Link href="/collection" className="btn-primary text-sm inline-flex gap-2"><Package className="w-4 h-4" /> 新增我的收藏</Link>
+                  : <Link href="/auth/login" className="btn-secondary text-sm inline-flex">登入後新增收藏</Link>
               }
             </div>
           ) : (
@@ -455,23 +455,24 @@ function CommunityContent() {
                 <Link key={u.id} href={`/users/${u.id}`}
                   className="glass rounded-2xl overflow-hidden card-hover group block">
                   {/* Card preview strip */}
-                  <div className="grid grid-cols-4 h-28 bg-gray-900">
-                    {u.collections.slice(0, 4).map((col: any, i: number) => (
+                  <div className="relative grid grid-cols-4 h-28 bg-gray-900">
+                    {u.preview_images.slice(0, 4).map((img, i) => (
                       <div key={i} className="overflow-hidden bg-gray-800">
-                        {(col.image_url || col.cards?.image_url)
-                          ? <img src={col.image_url ?? col.cards?.image_url} alt=""
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          : <div className="w-full h-full flex items-center justify-center text-2xl">
-                              {gameEmoji[col.cards?.game ?? ""] ?? "🃏"}
-                            </div>
-                        }
+                        <img src={img} alt=""
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       </div>
                     ))}
-                    {Array(Math.max(0, 4 - u.collections.length)).fill(0).map((_, i) => (
-                      <div key={`empty-${i}`} className="bg-gray-900 flex items-center justify-center text-gray-800 border-l border-gray-800">
+                    {Array(Math.max(0, 4 - u.preview_images.length)).fill(0).map((_, i) => (
+                      <div key={`e-${i}`} className="bg-gray-900 flex items-center justify-center text-gray-800 border-l border-gray-800">
                         <Grid3X3 className="w-4 h-4" />
                       </div>
                     ))}
+                    {/* 精選徽章 */}
+                    {u.is_featured && (
+                      <div className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-yellow-900/80 text-yellow-400 border border-yellow-700/50 backdrop-blur-sm font-medium">
+                        ⭐ 精選
+                      </div>
+                    )}
                   </div>
                   {/* User info */}
                   <div className="p-4 space-y-2">
@@ -482,9 +483,20 @@ function CommunityContent() {
                           : u.username[0]?.toUpperCase()
                         }
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-white text-sm truncate group-hover:text-brand-300 transition-colors">
-                          {u.display_name ?? u.username}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white text-sm truncate group-hover:text-brand-300 transition-colors">
+                            {u.display_name ?? u.username}
+                          </span>
+                          {(u.trade_tier === "收藏家" || u.trade_tier === "卡牌大師") && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${
+                              u.trade_tier === "卡牌大師"
+                                ? "bg-orange-900/30 text-orange-400 border-orange-800/30"
+                                : "bg-yellow-900/30 text-yellow-400 border-yellow-800/30"
+                            }`}>
+                              {u.trade_tier === "卡牌大師" ? "👑" : "⭐"} {u.trade_tier}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-gray-500">@{u.username}</div>
                       </div>
