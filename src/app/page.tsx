@@ -200,7 +200,7 @@ export default function HomePage() {
     async function loadData() {
       const [auctionsRes, storesRes, postsData, usersData, statsData] = await Promise.all([
         fetch("/api/trade/recent"),
-        fetch("/api/stores"),
+        fetch("/api/stores?sort=hot"),
         supabase.from("posts").select("*, profiles(username, avatar_url, reputation)").eq("is_deleted", false).gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: false }).limit(60),
         supabase.from("profiles").select("id, username, reputation, created_at").order("reputation", { ascending: false }).limit(5),
         Promise.all([

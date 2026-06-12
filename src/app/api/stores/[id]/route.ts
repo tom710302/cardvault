@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -11,5 +11,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   ]);
 
   if (storeRes.error) return NextResponse.json({ error: "找不到此店舖" }, { status: 404 });
+
+  // Increment view count (fire-and-forget)
+  const admin = createAdminClient();
+  admin.from("stores")
+    .update({ view_count: (storeRes.data.view_count ?? 0) + 1 })
+    .eq("id", params.id)
+    .then(() => {});
+
   return NextResponse.json({ store: storeRes.data, events: eventsRes.data ?? [], products: productsRes.data ?? [] });
 }

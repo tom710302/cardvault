@@ -7,8 +7,11 @@ export async function GET(request: NextRequest) {
   const city = searchParams.get("city");
   const game = searchParams.get("game");
   const search = searchParams.get("search");
+  const sort = searchParams.get("sort");
 
-  let query = supabase.from("stores").select("*").order("is_verified", { ascending: false }).order("name");
+  let query = sort === "hot"
+    ? supabase.from("stores").select("*").order("view_count", { ascending: false }).order("is_verified", { ascending: false })
+    : supabase.from("stores").select("*").order("is_verified", { ascending: false }).order("name");
 
   if (city && city !== "全部") query = query.eq("city", city);
   if (game && game !== "全部") query = query.contains("games", [game]);
