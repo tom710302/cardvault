@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight } from "lucide-react";
+import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight, Search, List, BarChart3, TrendingUp } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TrustBadge } from "@/components/trade/TrustBadge";
@@ -14,10 +14,11 @@ interface Profile {
   avatar_url: string | null; reputation: number; role: string;
 }
 interface CollectionItem {
-  id: string; card_id: string; condition: string; quantity: number;
+  id: string; card_id: string | null; custom_name: string | null; condition: string; quantity: number;
   notes: string | null; image_url: string | null; visibility: string;
-  cards: { id: string; name: string; game: string; rarity: string | null; image_url: string | null } | null;
+  cards: { id: string; name: string; name_en: string | null; game: string; set_name: string | null; rarity: string | null; image_url: string | null } | null;
 }
+interface Card { id: string; name: string; name_en: string | null; game: string; set_name: string | null; rarity: string | null; }
 interface ShowcasePost {
   id: string; title: string; board: string; post_type: string;
   upvotes: number; view_count: number; created_at: string; image_urls: string[] | null;
@@ -32,12 +33,24 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"collection" | "posts" | "trade" | "settings">("collection");
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
+  const [colView, setColView] = useState<"grid" | "list">("grid");
+  const [colSearch, setColSearch] = useState("");
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [colCards, setColCards] = useState<Card[]>([]);
+  const [colCardSearch, setColCardSearch] = useState("");
+  const [addCardForm, setAddCardForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
+  const [colSubmitting, setColSubmitting] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({ username: "", display_name: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const supabase = createClient();
   const router = useRouter();
+
+  const fetchCollection = useCallback(async () => {
+    const res = await fetch("/api/collections");
+    if (res.ok) { const { collections } = await res.json(); setCollection(collections ?? []); }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -48,20 +61,16 @@ export default function MyPage() {
       if (p) { setProfile(p); setEditForm({ username: p.username ?? "", display_name: p.display_name ?? "", bio: p.bio ?? "" }); }
       setLoading(false);
 
-      // Load collection
-      const colRes = await fetch("/api/collections");
-      if (colRes.ok) { const { collections } = await colRes.json(); setCollection(collections ?? []); }
+      await fetchCollection();
 
-      // Load posts
       const { data: postsData } = await supabase.from("posts").select("id, title, board, post_type, upvotes, view_count, created_at, image_urls").eq("author_id", user.id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(30);
       if (postsData) setPosts(postsData);
 
-      // Load trade haves
       const tradeRes = await fetch(`/api/trade/haves?user_id=${user.id}`);
       if (tradeRes.ok) { const { haves } = await tradeRes.json(); setTradeHaves(haves ?? []); }
     }
     load();
-  }, []);
+  }, [fetchCollection]);
 
   async function handleAvatarUpload(url: string) {
     if (!profile) return;
@@ -92,6 +101,35 @@ export default function MyPage() {
     setCollection(prev => prev.map(i => i.id === id ? { ...i, visibility: next } : i));
   }
 
+  async function searchColCards(q: string) {
+    setColCardSearch(q);
+    if (q.length < 1) { setColCards([]); return; }
+    const res = await fetch(`/api/cards?search=${encodeURIComponent(q)}&limit=10`);
+    if (res.ok) { const { cards } = await res.json(); setColCards(cards ?? []); }
+  }
+
+  async function addCardToCollection(e: React.FormEvent) {
+    e.preventDefault();
+    const custom_name = addCardForm.card_id ? "" : colCardSearch.trim();
+    if (!addCardForm.card_id && !custom_name) { alert("請輸入或選擇卡牌名稱"); return; }
+    setColSubmitting(true);
+    const res = await fetch("/api/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...addCardForm, custom_name }),
+    });
+    if (res.ok) {
+      setShowAddCard(false);
+      setAddCardForm({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public" });
+      setColCardSearch(""); setColCards([]);
+      fetchCollection();
+    } else {
+      const { error } = await res.json();
+      alert(error ?? "新增失敗");
+    }
+    setColSubmitting(false);
+  }
+
   if (loading) return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
       <div className="glass rounded-2xl h-40 shimmer" />
@@ -100,9 +138,6 @@ export default function MyPage() {
   );
 
   if (!profile) return null;
-
-  const publicCollection = collection.filter(i => i.visibility === "public");
-  const privateCollection = collection.filter(i => i.visibility === "private");
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -135,6 +170,104 @@ export default function MyPage() {
                 <button type="button" onClick={() => setShowEditProfile(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
                 <button type="submit" disabled={savingProfile} className="btn-primary text-sm px-4 py-2 flex items-center gap-2 disabled:opacity-50">
                   <Save className="w-3.5 h-3.5" /> {savingProfile ? "儲存中..." : "儲存"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Card Modal */}
+      {showAddCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
+          <div className="glass rounded-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">新增卡牌到收藏庫</h2>
+              <button onClick={() => setShowAddCard(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={addCardToCollection} className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">搜尋卡牌</label>
+                <input value={colCardSearch} onChange={e => searchColCards(e.target.value)}
+                  placeholder="輸入卡牌名稱..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+                {colCardSearch.length > 0 && colCards.length === 0 && !addCardForm.card_id && (
+                  <p className="mt-1 text-xs text-gray-500 px-1">找不到符合的卡牌，將以自訂名稱儲存</p>
+                )}
+                {colCards.length > 0 && (
+                  <div className="mt-1 glass rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+                    {colCards.map(card => (
+                      <button key={card.id} type="button"
+                        onClick={() => { setAddCardForm(v => ({ ...v, card_id: card.id })); setColCardSearch(card.name); setColCards([]); }}
+                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors",
+                          addCardForm.card_id === card.id ? "bg-brand-600/20 text-brand-300" : "text-gray-200"
+                        )}>
+                        {card.name} <span className="text-gray-500 text-xs">· {card.game}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {addCardForm.card_id && (
+                  <p className="mt-1 text-xs text-green-400 px-1">✓ 已選擇：{colCardSearch}</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">品相</label>
+                  <select value={addCardForm.condition} onChange={e => setAddCardForm(v => ({ ...v, condition: e.target.value }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100">
+                    {["M", "NM", "LP", "MP", "HP", "D", "PSA 10", "PSA 9", "BGS 9.5", "BGS 9"].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">數量</label>
+                  <input type="number" min={1} max={99} value={addCardForm.quantity}
+                    onChange={e => setAddCardForm(v => ({ ...v, quantity: parseInt(e.target.value) || 1 }))}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">備註（選填）</label>
+                <input value={addCardForm.notes} onChange={e => setAddCardForm(v => ({ ...v, notes: e.target.value }))}
+                  placeholder="入手方式、心得..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">上傳卡牌照片（選填）</label>
+                <ImageUpload
+                  folder="collections"
+                  label="上傳你的卡牌實體照片"
+                  hint="JPG、PNG，最大 5MB"
+                  currentUrl={addCardForm.image_url}
+                  className="aspect-[5/3]"
+                  onUpload={(url) => setAddCardForm(v => ({ ...v, image_url: url }))}
+                  onRemove={() => setAddCardForm(v => ({ ...v, image_url: "" }))}
+                />
+              </div>
+              <div className="flex items-center justify-between py-2 border border-white/10 rounded-xl px-3">
+                <div className="flex items-center gap-2 text-sm">
+                  {addCardForm.visibility === "public"
+                    ? <Eye className="w-4 h-4 text-green-400" />
+                    : <EyeOff className="w-4 h-4 text-gray-500" />}
+                  <span className="text-gray-300">{addCardForm.visibility === "public" ? "公開展示" : "僅自己可見"}</span>
+                </div>
+                <button type="button"
+                  onClick={() => setAddCardForm(v => ({ ...v, visibility: v.visibility === "public" ? "private" : "public" }))}
+                  className={cn("text-xs px-3 py-1 rounded-full transition-colors",
+                    addCardForm.visibility === "public"
+                      ? "bg-green-900/30 text-green-400 hover:bg-green-900/50"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  )}>
+                  {addCardForm.visibility === "public" ? "切換為私人" : "切換為公開"}
+                </button>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button type="button" onClick={() => setShowAddCard(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                <button type="submit" disabled={colSubmitting || (!addCardForm.card_id && !colCardSearch.trim())}
+                  className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
+                  {colSubmitting ? "新增中..." : "新增到收藏"}
                 </button>
               </div>
             </form>
@@ -220,9 +353,9 @@ export default function MyPage() {
           <Link href="/trade/offers" className="px-4 py-2 btn-secondary text-sm flex items-center gap-2">
             <ArrowLeftRight className="w-4 h-4" /> 換卡信箱
           </Link>
-          <Link href="/collection" className="px-4 py-2 btn-secondary text-sm flex items-center gap-2">
+          <button onClick={() => setShowAddCard(true)} className="px-4 py-2 btn-secondary text-sm flex items-center gap-2">
             <Plus className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -248,62 +381,102 @@ export default function MyPage() {
         </button>
       </div>
 
-      {/* Collection Grid (IG style) */}
-      {tab === "collection" && (
-        <div className="space-y-1">
-          {/* Section: Public */}
-          {collection.length === 0 ? (
-            <div className="text-center py-20 text-gray-500 space-y-3 px-4">
-              <Package className="w-12 h-12 mx-auto opacity-30" />
-              <p>還沒有收藏，點下方按鈕新增第一張！</p>
-              <Link href="/collection" className="btn-primary text-sm inline-flex">新增收藏</Link>
+      {/* Collection Tab */}
+      {tab === "collection" && (() => {
+        const totalCards = collection.reduce((s, i) => s + i.quantity, 0);
+        const uniqueGames = Array.from(new Set(collection.map(i => i.cards?.game).filter(Boolean))).length;
+        const gradedCount = collection.filter(i => i.condition.includes("PSA") || i.condition.includes("BGS")).length;
+        const filteredCollection = collection.filter(item =>
+          !colSearch || item.cards?.name.includes(colSearch) || item.cards?.game.includes(colSearch) || (item.custom_name ?? "").includes(colSearch)
+        );
+        return (
+          <div className="space-y-4 px-4 py-4">
+            {/* Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="glass rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1 text-blue-400"><Package className="w-3.5 h-3.5" /><span className="text-xs text-gray-500">總收藏數</span></div>
+                <div className="text-xl font-bold text-white">{totalCards} 張</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1 text-green-400"><TrendingUp className="w-3.5 h-3.5" /><span className="text-xs text-gray-500">種類數</span></div>
+                <div className="text-xl font-bold text-white">{collection.length} 種</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1 text-yellow-400"><Star className="w-3.5 h-3.5" /><span className="text-xs text-gray-500">遊戲種類</span></div>
+                <div className="text-xl font-bold text-white">{uniqueGames} 種</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1 text-brand-400"><BarChart3 className="w-3.5 h-3.5" /><span className="text-xs text-gray-500">已評級</span></div>
+                <div className="text-xl font-bold text-white">{gradedCount} 張</div>
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Grid */}
+
+            {/* Controls */}
+            <div className="flex gap-2">
+              <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 flex-1">
+                <Search className="w-4 h-4 text-gray-500 shrink-0" />
+                <input placeholder="搜尋收藏..." value={colSearch} onChange={e => setColSearch(e.target.value)}
+                  className="bg-transparent flex-1 outline-none text-sm placeholder-gray-500 text-gray-100" />
+              </div>
+              <button onClick={() => setColView("grid")} className={cn("px-3 py-2 rounded-lg text-sm transition-colors", colView === "grid" ? "bg-brand-600 text-white" : "btn-secondary")}>
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button onClick={() => setColView("list")} className={cn("px-3 py-2 rounded-lg text-sm transition-colors", colView === "list" ? "bg-brand-600 text-white" : "btn-secondary")}>
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            {collection.length === 0 ? (
+              <div className="text-center py-16 text-gray-500 space-y-3">
+                <Package className="w-12 h-12 mx-auto opacity-30" />
+                <p>還沒有收藏，點上方 + 新增第一張！</p>
+                <button onClick={() => setShowAddCard(true)} className="btn-primary text-sm">+ 新增卡牌</button>
+              </div>
+            ) : filteredCollection.length === 0 ? (
+              <div className="text-center py-16 text-gray-500 space-y-3">
+                <Package className="w-12 h-12 mx-auto opacity-30" />
+                <p>沒有符合搜尋的卡牌</p>
+              </div>
+            ) : colView === "grid" ? (
               <div className="grid grid-cols-3 gap-0.5">
-                {collection.map(item => (
+                <button onClick={() => setShowAddCard(true)}
+                  className="aspect-square bg-gray-900 border border-dashed border-white/10 hover:border-brand-500/50 flex items-center justify-center transition-colors group">
+                  <Plus className="w-8 h-8 text-gray-600 group-hover:text-brand-400 transition-colors" />
+                </button>
+                {filteredCollection.map(item => (
                   <div key={item.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
-                    {/* Image */}
                     {item.image_url || item.cards?.image_url ? (
-                      <img
-                        src={item.image_url ?? item.cards?.image_url ?? ""}
-                        alt={item.cards?.name ?? ""}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? item.custom_name ?? ""}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
                         <span className="text-4xl">{gameEmoji[item.cards?.game ?? ""] ?? "🃏"}</span>
                       </div>
                     )}
-
-                    {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                      <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name}</p>
+                      <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name ?? item.custom_name}</p>
                       <p className="text-gray-300 text-[10px]">{item.condition}</p>
                       <div className="flex gap-2 mt-1">
                         <button onClick={() => toggleVisibility(item.id, item.visibility)}
-                          className="p-1.5 bg-white/20 rounded-full hover:bg-white/30 transition-colors" title={item.visibility === "public" ? "設為私人" : "設為公開"}>
+                          className="p-1.5 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                           {item.visibility === "public" ? <Eye className="w-3.5 h-3.5 text-white" /> : <EyeOff className="w-3.5 h-3.5 text-gray-300" />}
                         </button>
-                        <Link href={`/cards/${item.card_id}`}
-                          className="p-1.5 bg-brand-600/80 rounded-full hover:bg-brand-600 transition-colors">
-                          <Grid3X3 className="w-3.5 h-3.5 text-white" />
-                        </Link>
+                        {item.card_id && (
+                          <Link href={`/cards/${item.card_id}`} className="p-1.5 bg-brand-600/80 rounded-full hover:bg-brand-600 transition-colors">
+                            <Grid3X3 className="w-3.5 h-3.5 text-white" />
+                          </Link>
+                        )}
                         <button onClick={() => removeFromCollection(item.id)}
                           className="p-1.5 bg-red-600/80 rounded-full hover:bg-red-600 transition-colors">
                           <Trash2 className="w-3.5 h-3.5 text-white" />
                         </button>
                       </div>
                     </div>
-
-                    {/* Private badge */}
                     {item.visibility === "private" && (
                       <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center">
                         <EyeOff className="w-2.5 h-2.5 text-gray-400" />
                       </div>
                     )}
-                    {/* Quantity badge */}
                     {item.quantity > 1 && (
                       <div className="absolute top-1.5 left-1.5 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                         ×{item.quantity}
@@ -311,21 +484,37 @@ export default function MyPage() {
                     )}
                   </div>
                 ))}
-                {/* Add button */}
-                <Link href="/collection" className="aspect-square bg-gray-900 border border-dashed border-white/10 hover:border-brand-500/50 flex items-center justify-center transition-colors group">
-                  <Plus className="w-8 h-8 text-gray-600 group-hover:text-brand-400 transition-colors" />
-                </Link>
               </div>
-
-              {/* Stats Bar */}
-              <div className="flex items-center justify-between px-4 py-3 text-xs text-gray-500 border-t border-white/5">
-                <span>共 {collection.length} 張 · 公開 {publicCollection.length} · 私人 {privateCollection.length}</span>
-                <span>{new Set(collection.map(i => i.cards?.game)).size} 種遊戲</span>
+            ) : (
+              <div className="space-y-2">
+                {filteredCollection.map(item => (
+                  <div key={item.id} className="glass rounded-xl p-3 flex items-center gap-3 group">
+                    <div className="w-10 h-14 bg-gray-800 rounded-lg flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                      {item.image_url || item.cards?.image_url
+                        ? <img src={item.image_url ?? item.cards?.image_url ?? ""} alt="" className="w-full h-full object-cover" />
+                        : <span>🃏</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white text-sm">{item.cards?.name ?? item.custom_name}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{item.cards?.game ?? "自訂"} · {item.condition}</div>
+                      {item.notes && <div className="text-xs text-gray-600 italic mt-1 truncate">{item.notes}</div>}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-sm text-gray-400">x{item.quantity}</span>
+                      <button onClick={() => toggleVisibility(item.id, item.visibility)} className="text-gray-600 hover:text-gray-300 transition-colors">
+                        {item.visibility === "public" ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-gray-600" />}
+                      </button>
+                      <button onClick={() => removeFromCollection(item.id)} className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
 
       {/* Posts Grid */}
       {tab === "posts" && (
