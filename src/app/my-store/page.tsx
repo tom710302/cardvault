@@ -431,7 +431,12 @@ export default function MyStorePage() {
                   )}
                   <div className="p-4 flex-1 min-w-0 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-200">{ev.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-200">{ev.title}</p>
+                        {ev.event_date && ev.event_date < new Date().toISOString().slice(0, 10) && (
+                          <span className="badge text-xs bg-gray-800 text-gray-500 shrink-0">已結束</span>
+                        )}
+                      </div>
                       {ev.event_date && (
                         <p className="text-xs text-brand-400 mt-0.5">📅 {new Date(ev.event_date).toLocaleDateString("zh-TW")}</p>
                       )}
