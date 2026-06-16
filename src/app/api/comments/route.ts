@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail, getUserEmail, commentReplyEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -36,6 +37,22 @@ export async function POST(request: NextRequest) {
 
   // 更新發文者聲望
   await supabase.rpc("increment_reputation", { user_id: user.id, amount: 1 }).maybeSingle();
+
+  // Email 通知（回覆對象：留言的父留言作者，或文章作者）
+  const admin = createAdminClient();
+  const recipientId = parent_id
+    ? (await admin.from("comments").select("author_id").eq("id", parent_id).single()).data?.author_id
+    : (await admin.from("posts").select("author_id").eq("id", post_id).single()).data?.author_id;
+
+  if (recipientId && recipientId !== user.id) {
+    const recipientEmail = await getUserEmail(admin, recipientId);
+    if (recipientEmail) {
+      const replierName = data.profiles?.display_name || data.profiles?.username || "有人";
+      const excerpt = content.length > 60 ? `${content.slice(0, 60)}...` : content;
+      await sendEmail({ to: recipientEmail, subject: `${replierName} 回覆了你`, html: commentReplyEmail(replierName, excerpt, post_id) });
+    }
+  }
+
   return NextResponse.json({ comment: data }, { status: 201 });
 }
 

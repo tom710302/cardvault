@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail, getUserEmail, matchFoundEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const admin = createAdminClient();
@@ -21,6 +22,19 @@ export async function POST(request: NextRequest) {
     user_id: user.id, card_name, card_game, condition_min: condition_min || "LP", note: note || null,
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // 配對通知：找出其他人持有這張卡的 have，各通知一次
+  const [{ data: matchedHaves }, { data: myProfile }] = await Promise.all([
+    admin.from("trade_haves").select("user_id").ilike("card_name", card_name).eq("is_active", true).neq("user_id", user.id),
+    admin.from("profiles").select("username, display_name").eq("id", user.id).single(),
+  ]);
+  const myName = myProfile?.display_name || myProfile?.username || "某位收藏家";
+  const matchedUserIds = Array.from(new Set((matchedHaves ?? []).map((h: any) => h.user_id)));
+  for (const uid of matchedUserIds) {
+    const email = await getUserEmail(admin, uid);
+    if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
+  }
+
   return NextResponse.json({ want: data }, { status: 201 });
 }
 

@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail, getUserEmail, tradeOfferEmail } from "@/lib/email";
 
 const DAILY_LIMITS: Record<string, number> = { "新手": 3, "老手": 10, "收藏家": Infinity, "卡牌大師": Infinity };
 
@@ -76,6 +77,15 @@ export async function POST(request: NextRequest) {
     ...(request_have_ids ?? []).map((id: string) => ({ offer_id: offer.id, have_id: id, direction: "request" })),
   ];
   if (items.length > 0) await admin.from("trade_offer_items").insert(items);
+
+  const [{ data: fromProfile }, toEmail] = await Promise.all([
+    admin.from("profiles").select("username, display_name").eq("id", user.id).single(),
+    getUserEmail(admin, to_user_id),
+  ]);
+  if (toEmail) {
+    const fromName = fromProfile?.display_name || fromProfile?.username || "有人";
+    await sendEmail({ to: toEmail, subject: `${fromName} 向你提出了換卡邀請`, html: tradeOfferEmail(fromName) });
+  }
 
   return NextResponse.json({ offer }, { status: 201 });
 }
