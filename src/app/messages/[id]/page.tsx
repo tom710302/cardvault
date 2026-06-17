@@ -71,6 +71,7 @@ export default function ChatPage() {
     sendingRef.current = true;
     setSending(true);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "38px";
     const res = await fetch(`/api/messages/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -153,7 +154,7 @@ export default function ChatPage() {
             e.target.style.height = "auto";
             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
           }}
-          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
           placeholder="輸入訊息... (Shift+Enter 換行)"
           rows={1}
           style={{ height: "38px" }}
