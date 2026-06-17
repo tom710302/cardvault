@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -43,12 +43,14 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [tab, setTab] = useState<"collection" | "posts" | "trade">("collection");
+  const [tab, setTab] = useState<"collection" | "posts" | "trade" | "reviews">("collection");
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [startingConv, setStartingConv] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState({ positive: 0, neutral: 0, negative: 0, total: 0 });
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -88,6 +90,14 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       // Load trade haves
       const tradeRes = await fetch(`/api/trade/haves?user_id=${params.id}`);
       if (tradeRes.ok) { const { haves } = await tradeRes.json(); setTradeHaves(haves ?? []); }
+
+      // Load reviews
+      const reviewRes = await fetch(`/api/users/${params.id}/reviews`);
+      if (reviewRes.ok) {
+        const { reviews, stats } = await reviewRes.json();
+        setReviews(reviews ?? []);
+        setReviewStats(stats ?? { positive: 0, neutral: 0, negative: 0, total: 0 });
+      }
 
       setLoading(false);
     }
@@ -275,6 +285,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
           ["collection", <Grid3X3 className="w-5 h-5" />, "收藏"],
           ["posts", <Star className="w-5 h-5" />, "貼文"],
           ["trade", <ArrowLeftRight className="w-5 h-5" />, "換卡"],
+          ["reviews", <ThumbsUp className="w-5 h-5" />, "評價"],
         ] as const).map(([id, icon, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-t-2 -mt-px transition-colors",
@@ -407,6 +418,90 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
           </div>
         )
       )}
+
+      {/* Reviews Tab */}
+      {tab === "reviews" && (
+        <div className="px-4 py-5 space-y-4 max-w-2xl mx-auto">
+          {/* Stats summary */}
+          {reviewStats.total > 0 ? (
+            <>
+              <div className="glass rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-white">交易評價</h2>
+                  <span className="text-xs text-gray-500">{reviewStats.total} 筆評價</span>
+                </div>
+                {/* Bar */}
+                <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
+                  {reviewStats.positive > 0 && (
+                    <div className="bg-green-500 rounded-full" style={{ width: `${(reviewStats.positive / reviewStats.total) * 100}%` }} />
+                  )}
+                  {reviewStats.neutral > 0 && (
+                    <div className="bg-gray-500 rounded-full" style={{ width: `${(reviewStats.neutral / reviewStats.total) * 100}%` }} />
+                  )}
+                  {reviewStats.negative > 0 && (
+                    <div className="bg-red-500 rounded-full" style={{ width: `${(reviewStats.negative / reviewStats.total) * 100}%` }} />
+                  )}
+                </div>
+                {/* Counts */}
+                <div className="flex gap-4 text-xs">
+                  <span className="flex items-center gap-1 text-green-400">
+                    <ThumbsUp className="w-3.5 h-3.5" /> 好評 {reviewStats.positive}
+                  </span>
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Minus className="w-3.5 h-3.5" /> 中評 {reviewStats.neutral}
+                  </span>
+                  <span className="flex items-center gap-1 text-red-400">
+                    <ThumbsDown className="w-3.5 h-3.5" /> 差評 {reviewStats.negative}
+                  </span>
+                </div>
+              </div>
+
+              {/* Review list */}
+              <div className="space-y-2">
+                {reviews.map(rv => {
+                  const isPositive = rv.rating === "positive";
+                  const isNegative = rv.rating === "negative";
+                  return (
+                    <div key={rv.id} className="glass rounded-xl p-4 flex gap-3">
+                      <div className={`mt-0.5 shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+                        isPositive ? "bg-green-500/20 text-green-400" :
+                        isNegative ? "bg-red-500/20 text-red-400" :
+                        "bg-gray-700 text-gray-400"
+                      }`}>
+                        {isPositive ? <ThumbsUp className="w-3.5 h-3.5" /> :
+                         isNegative ? <ThumbsDown className="w-3.5 h-3.5" /> :
+                         <Minus className="w-3.5 h-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <Link href={`/users/${rv.reviewer?.id}`}
+                            className="text-sm font-medium text-gray-200 hover:text-white transition-colors truncate">
+                            {rv.reviewer?.display_name ?? rv.reviewer?.username ?? "用戶"}
+                          </Link>
+                          <span className="text-xs text-gray-600 shrink-0">
+                            {timeAgo(new Date(rv.created_at))}
+                          </span>
+                        </div>
+                        {rv.comment ? (
+                          <p className="text-sm text-gray-400 leading-relaxed">{rv.comment}</p>
+                        ) : (
+                          <p className="text-xs text-gray-600 italic">無留言</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-20 text-gray-500 space-y-2">
+              <ThumbsUp className="w-10 h-10 mx-auto opacity-30" />
+              <p>還沒有交易評價</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="h-16" />
 
       {/* Report Modal */}

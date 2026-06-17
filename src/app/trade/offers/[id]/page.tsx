@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeftRight, CheckCircle, XCircle, Star, Clock, Package,
-  MessageSquare, ShieldAlert, ShieldOff, Shield, Send,
+  ArrowLeftRight, CheckCircle, XCircle, Clock, Package,
+  MessageSquare, ShieldAlert, ShieldOff, Shield, Send, ThumbsUp, ThumbsDown, Minus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TrustBadge } from "@/components/trade/TrustBadge";
@@ -23,17 +23,26 @@ const conditionColor: Record<string, string> = {
   M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400",
 };
 
-function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [hover, setHover] = useState(0);
+const RATINGS = [
+  { value: "positive", label: "好評", icon: ThumbsUp, active: "bg-green-500/20 border-green-500 text-green-400", inactive: "border-white/10 text-gray-500 hover:border-green-500/50" },
+  { value: "neutral",  label: "中評", icon: Minus,    active: "bg-gray-500/20 border-gray-400 text-gray-300",  inactive: "border-white/10 text-gray-500 hover:border-gray-400/50" },
+  { value: "negative", label: "差評", icon: ThumbsDown, active: "bg-red-500/20 border-red-500 text-red-400",   inactive: "border-white/10 text-gray-500 hover:border-red-500/50" },
+];
+
+function RatingSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(n => (
-        <button key={n} type="button"
-          onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => onChange(n)}
-          className="transition-transform hover:scale-110">
-          <Star className={`w-8 h-8 transition-colors ${n <= (hover || value) ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}`} />
-        </button>
-      ))}
+    <div className="flex gap-2">
+      {RATINGS.map(r => {
+        const Icon = r.icon;
+        const isActive = value === r.value;
+        return (
+          <button key={r.value} type="button" onClick={() => onChange(r.value)}
+            className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all ${isActive ? r.active : r.inactive}`}>
+            <Icon className="w-5 h-5" />
+            <span className="text-xs font-medium">{r.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -47,7 +56,7 @@ export default function OfferDetailPage() {
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState("");
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
 
@@ -146,7 +155,7 @@ export default function OfferDetailPage() {
     });
     if (res.ok) {
       setReviewed(true);
-      setRating(0);
+      setRating("");
       setComment("");
       toast.success("評價已送出！");
     }
@@ -320,11 +329,9 @@ export default function OfferDetailPage() {
       {/* Review form */}
       {offer.status === "completed" && !reviewed && (
         <div className="glass rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Star className="w-4 h-4 text-yellow-400" /> 留下評價
-          </h2>
+          <h2 className="text-sm font-bold text-white">留下評價</h2>
           <form onSubmit={submitReview} className="space-y-3">
-            <StarRating value={rating} onChange={setRating} />
+            <RatingSelector value={rating} onChange={setRating} />
             <textarea value={comment} onChange={e => setComment(e.target.value)}
               placeholder="填寫評價（選填）…"
               rows={3}
