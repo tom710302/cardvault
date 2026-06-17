@@ -65,7 +65,7 @@ function DeckBuilderInner() {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
-      const res = await fetch(`/api/cards?search=${encodeURIComponent(searchQuery)}&game=${encodeURIComponent(game)}&limit=20`);
+      const res = await fetch(`/api/cards/external?q=${encodeURIComponent(searchQuery)}&game=${encodeURIComponent(game)}`);
       if (res.ok) { const { cards } = await res.json(); setSearchResults(cards ?? []); }
       setSearching(false);
     }, 300);
@@ -113,15 +113,12 @@ function DeckBuilderInner() {
         });
       }
 
-      // Sync deck cards: delete all then re-insert
-      // Using PATCH to update quantities or POST to add
-      for (const card of deckCards) {
-        await fetch(`/api/decks/${id}/cards`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...card, quantity: card.quantity }),
-        });
-      }
+      // Full sync: one PUT call replaces all deck cards
+      await fetch(`/api/decks/${id}/cards`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cards: deckCards }),
+      });
 
       toast.success("卡組已儲存！");
     } catch {
@@ -200,7 +197,12 @@ function DeckBuilderInner() {
               <div className="text-center text-gray-600 text-sm py-8">找不到「{searchQuery}」</div>
             )}
             {!searchQuery && (
-              <div className="text-center text-gray-600 text-sm py-12">輸入卡牌名稱開始搜尋</div>
+              <div className="text-center text-gray-600 text-sm py-12 space-y-1">
+                <p>輸入卡牌名稱開始搜尋</p>
+                {!["寶可夢","MTG","遊戲王"].includes(game) && (
+                  <p className="text-xs text-gray-700">{game} 目前無外部卡牌資料庫</p>
+                )}
+              </div>
             )}
             {searchResults.map(card => {
               const inDeck = deckCards.find(c => c.card_id === card.id);
