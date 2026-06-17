@@ -6,10 +6,12 @@ import Link from "next/link";
 import { Gavel, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useToast } from "@/components/ui/Toast";
 
 export default function NewAuctionPage() {
   const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
   const [user, setUser] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -40,8 +42,8 @@ export default function NewAuctionPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title || !form.starting_price || !form.end_at) { alert("請填寫必填欄位"); return; }
-    if (new Date(form.end_at) <= new Date()) { alert("結標時間必須在未來"); return; }
+    if (!form.title || !form.starting_price || !form.end_at) { toast.error("請填寫必填欄位"); return; }
+    if (new Date(form.end_at) <= new Date()) { toast.error("結標時間必須在未來"); return; }
     setSubmitting(true);
     const res = await fetch("/api/auctions", {
       method: "POST",
@@ -53,7 +55,7 @@ export default function NewAuctionPage() {
       router.push(`/auctions/${auction.id}`);
     } else {
       const { error } = await res.json();
-      alert(error ?? "建立失敗");
+      toast.error(error ?? "建立失敗");
     }
     setSubmitting(false);
   }

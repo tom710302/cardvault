@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
 import { Plus, Trash2, Search, X } from "lucide-react";
 import Link from "next/link";
 
@@ -22,6 +23,7 @@ export default function WishlistPage() {
   const [form, setForm] = useState({ card_id: "", max_price: "", notes: "" });
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -47,7 +49,7 @@ export default function WishlistPage() {
 
   async function addToWishlist(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.card_id) { alert("請選擇卡牌"); return; }
+    if (!form.card_id) { toast.error("請選擇卡牌"); return; }
     setSubmitting(true);
     const res = await fetch("/api/wishlist", {
       method: "POST",

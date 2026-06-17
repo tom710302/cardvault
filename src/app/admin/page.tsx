@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 
 interface Stats { users: number; posts: number; cards: number; collections: number; }
@@ -12,7 +13,7 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content" | "banners">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content" | "banners" | "reports">("dashboard");
   const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -22,6 +23,8 @@ export default function AdminPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [eventFilter, setEventFilter] = useState<"pending" | "approved">("pending");
   const [syncing, setSyncing] = useState(false);
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
   const [showAddStore, setShowAddStore] = useState(false);
   const [storeAccountForm, setStoreAccountForm] = useState({ email: "", password: "", username: "", store_id: "" });
   const [storeAccountSubmitting, setStoreAccountSubmitting] = useState(false);
@@ -39,12 +42,32 @@ export default function AdminPage() {
   const [showBannerForm, setShowBannerForm] = useState(false);
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [bannerForm, setBannerForm] = useState({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: 0 });
+  const toast = useToast();
 
   const supabase = createClient();
 
   useEffect(() => {
     if (tab === "banners") fetchAdminBanners();
+    if (tab === "reports") fetchReports();
   }, [tab]);
+
+  async function fetchReports() {
+    setReportsLoading(true);
+    const res = await fetch("/api/admin/reports");
+    if (res.ok) { const { reports } = await res.json(); setReports(reports); }
+    setReportsLoading(false);
+  }
+
+  async function handleReport(id: string, action: string, postId?: string) {
+    await fetch("/api/admin/reports", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action, post_id: postId }),
+    });
+    fetchReports();
+    if (action === "delete_post") { toast.success("已刪除貼文並標記檢舉為已解決"); fetchPosts(); }
+    else toast.success("已駁回檢舉");
+  }
 
   useEffect(() => {
     fetchStats();
@@ -92,7 +115,7 @@ export default function AdminPage() {
       fetchStats();
     } else {
       const { error } = await res.json();
-      alert(error ?? "新增失敗");
+      toast.error(error ?? "新增失敗");
     }
     setCardSubmitting(false);
   }
@@ -121,7 +144,7 @@ export default function AdminPage() {
       fetchStores();
     } else {
       const { error } = await res.json();
-      alert(error ?? "新增失敗");
+      toast.error(error ?? "新增失敗");
     }
     setStoreSubmitting(false);
   }
@@ -155,12 +178,12 @@ export default function AdminPage() {
       body: JSON.stringify(storeAccountForm),
     });
     if (res.ok) {
-      alert(`✅ 店主帳號建立成功！\nEmail: ${storeAccountForm.email}\n密碼: ${storeAccountForm.password}`);
+      toast.success(`店主帳號建立成功！\nEmail: ${storeAccountForm.email}\n密碼: ${storeAccountForm.password}`, 0);
       setStoreAccountForm({ email: "", password: "", username: "", store_id: "" });
       fetchStoreAccounts();
     } else {
       const { error } = await res.json();
-      alert(error ?? "建立失敗");
+      toast.error(error ?? "建立失敗");
     }
     setStoreAccountSubmitting(false);
   }
@@ -210,13 +233,13 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/sync-events", { method: "POST" });
       const body = await res.json();
       if (res.ok) {
-        alert(`✅ 同步完成！新增 ${body.synced} 筆，更新 ${body.updated} 筆，錯誤 ${body.errors} 筆`);
+        toast.success(`同步完成！新增 ${body.synced} 筆，更新 ${body.updated} 筆，錯誤 ${body.errors} 筆`);
         fetchEvents(eventFilter);
       } else {
-        alert("同步失敗：" + (body.error ?? "未知錯誤"));
+        toast.error("同步失敗：" + (body.error ?? "未知錯誤"));
       }
     } catch {
-      alert("網路錯誤");
+      toast.error("網路錯誤");
     }
     setSyncing(false);
   }
@@ -303,7 +326,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"], ["banners", "🖼️ Banner"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"], ["banners", "🖼️ Banner"], ["reports", "🚨 檢舉審核"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -991,6 +1014,60 @@ export default function AdminPage() {
                     {editingBannerId ? "更新 Banner" : "新增 Banner"}
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reports */}
+        {tab === "reports" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">🚨 檢舉審核</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  待審：{reports.filter(r => r.status === "pending").length} 件
+                </p>
+              </div>
+              <button onClick={fetchReports} className="btn-secondary text-sm flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" /> 刷新
+              </button>
+            </div>
+            {reportsLoading ? (
+              <div className="space-y-2">{Array(5).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-16 shimmer" />)}</div>
+            ) : reports.length === 0 ? (
+              <div className="glass rounded-xl p-10 text-center text-gray-500">目前沒有任何檢舉</div>
+            ) : (
+              <div className="space-y-2">
+                {reports.map(r => (
+                  <div key={r.id} className={`glass rounded-xl p-4 flex items-center gap-4 ${r.status !== "pending" ? "opacity-50" : ""}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === "pending" ? "bg-red-900/30 text-red-400" : r.status === "resolved" ? "bg-green-900/30 text-green-400" : "bg-gray-800 text-gray-500"}`}>
+                          {r.status === "pending" ? "待審" : r.status === "resolved" ? "已解決" : "已駁回"}
+                        </span>
+                        <span className="text-xs text-gray-500">原因：{r.reason}</span>
+                        <span className="text-xs text-gray-600">by @{r.reporter?.username}</span>
+                      </div>
+                      <Link href={`/community/${r.post_id}`} target="_blank"
+                        className="text-sm text-gray-200 hover:text-white truncate block">
+                        {r.posts?.is_deleted ? <span className="line-through text-gray-600">貼文已刪除</span> : r.posts?.title}
+                      </Link>
+                    </div>
+                    {r.status === "pending" && !r.posts?.is_deleted && (
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => handleReport(r.id, "delete_post", r.post_id)}
+                          className="text-xs bg-red-900/30 text-red-400 hover:bg-red-900/50 px-3 py-1.5 rounded-lg transition-colors">
+                          刪除貼文
+                        </button>
+                        <button onClick={() => handleReport(r.id, "dismiss")}
+                          className="text-xs bg-gray-800 text-gray-400 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors">
+                          駁回
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

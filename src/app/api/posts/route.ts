@@ -28,13 +28,13 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "請先登入" }, { status: 401 });
 
   const body = await request.json();
-  const { title, content, board, post_type, image_urls } = body;
+  const { title, content, board, post_type, image_urls, tags } = body;
 
   if (!title || !content) return NextResponse.json({ error: "標題和內容為必填" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("posts")
-    .insert({ title, content, board: board ?? "general", post_type: post_type ?? "discussion", author_id: user.id, image_urls: image_urls?.length ? image_urls : null })
+    .insert({ title, content, board: board ?? "general", post_type: post_type ?? "discussion", author_id: user.id, image_urls: image_urls?.length ? image_urls : null, tags: tags?.length ? tags : null })
     .select()
     .single();
 

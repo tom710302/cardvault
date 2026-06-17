@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X, ImageIcon } from "lucide-react";
+import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X, ImageIcon, Bookmark, Flag } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 function renderContent(text: string) {
   const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
@@ -38,6 +39,7 @@ interface Post {
   id: string; title: string; content: string; board: string; post_type: string;
   upvotes: number; view_count: number; created_at: string; author_id: string;
   image_urls: string[] | null;
+  tags: string[] | null;
   profiles: { id: string; username: string; avatar_url: string | null; reputation: number; role: string } | null;
 }
 
@@ -54,13 +56,30 @@ export default function PostDetailClient({ id }: { id: string }) {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editImages, setEditImages] = useState<string[]>([]);
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        fetch("/api/post-bookmarks")
+          .then(r => r.json())
+          .then(({ bookmarks }) => {
+            setIsBookmarked((bookmarks ?? []).some((b: any) => b.post_id === id));
+          })
+          .catch(() => {});
+      }
+    });
     fetchPost();
     fetchComments();
   }, [id]);
@@ -95,9 +114,40 @@ export default function PostDetailClient({ id }: { id: string }) {
     const res = await fetch(`/api/posts/${id}/edit`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editTitle, content: editContent, image_urls: editImages }),
+      body: JSON.stringify({ title: editTitle, content: editContent, image_urls: editImages, tags: editTags }),
     });
     if (res.ok) { setEditing(false); fetchPost(); }
+  }
+
+  async function toggleBookmark() {
+    if (!user) { router.push("/auth/login"); return; }
+    setBookmarkLoading(true);
+    if (isBookmarked) {
+      await fetch("/api/post-bookmarks", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: id }) });
+      setIsBookmarked(false);
+      toast.info("已取消收藏");
+    } else {
+      await fetch("/api/post-bookmarks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: id }) });
+      setIsBookmarked(true);
+      toast.success("已收藏文章");
+    }
+    setBookmarkLoading(false);
+  }
+
+  async function submitReport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reportReason) { toast.error("請選擇檢舉原因"); return; }
+    setReporting(true);
+    const res = await fetch(`/api/posts/${id}/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reportReason }),
+    });
+    const body = await res.json();
+    if (res.ok) { toast.success("已送出檢舉，感謝回報"); setShowReport(false); setReportReason(""); }
+    else if (res.status === 409) toast.info("你已檢舉過此貼文");
+    else toast.error(body.error ?? "檢舉失敗");
+    setReporting(false);
   }
 
   async function deletePost() {
@@ -108,12 +158,12 @@ export default function PostDetailClient({ id }: { id: string }) {
       if (res.ok) {
         window.location.replace("/community");
       } else {
-        alert("刪除失敗：" + (body.error ?? `HTTP ${res.status}`));
+        toast.error("刪除失敗：" + (body.error ?? `HTTP ${res.status}`));
         setDeleting(false);
         setConfirmDelete(false);
       }
     } catch (e) {
-      alert("網路錯誤，請再試一次");
+      toast.error("網路錯誤，請再試一次");
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -164,6 +214,34 @@ export default function PostDetailClient({ id }: { id: string }) {
         <ArrowLeft className="w-4 h-4" /> 返回社群討論
       </Link>
 
+      {/* Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="glass rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-white flex items-center gap-2"><Flag className="w-4 h-4 text-red-400" /> 檢舉貼文</h2>
+              <button onClick={() => setShowReport(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <form onSubmit={submitReport} className="space-y-3">
+              <div className="space-y-2">
+                {["垃圾廣告", "騷擾或仇恨言論", "詐騙或違法內容", "不實資訊", "其他"].map(reason => (
+                  <label key={reason} className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${reportReason === reason ? "bg-brand-900/30 text-brand-300" : "hover:bg-white/5 text-gray-300"}`}>
+                    <input type="radio" name="reason" value={reason} checked={reportReason === reason} onChange={() => setReportReason(reason)} className="accent-brand-500" />
+                    <span className="text-sm">{reason}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-3 justify-end pt-1">
+                <button type="button" onClick={() => setShowReport(false)} className="btn-secondary text-sm px-4 py-2">取消</button>
+                <button type="submit" disabled={reporting || !reportReason} className="btn-primary text-sm px-4 py-2 disabled:opacity-50">
+                  {reporting ? "送出中..." : "送出檢舉"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Post */}
       <div className="glass rounded-2xl p-6 space-y-4">
         <div className="flex gap-4">
@@ -180,6 +258,9 @@ export default function PostDetailClient({ id }: { id: string }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`badge text-xs ${typeColor[post.post_type] ?? "text-gray-400 bg-gray-800"}`}>{typeLabel[post.post_type]}</span>
               <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
+              {post.tags?.map(tag => (
+                <span key={tag} className="badge text-xs bg-brand-900/40 text-brand-400">#{tag}</span>
+              ))}
             </div>
             {editing ? (
               <form onSubmit={saveEdit} className="space-y-3">
@@ -187,6 +268,19 @@ export default function PostDetailClient({ id }: { id: string }) {
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-lg font-bold text-white outline-none focus:ring-2 focus:ring-brand-500" />
                 <textarea value={editContent} onChange={e => setEditContent(e.target.value)} required rows={6}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                {/* 標籤編輯 */}
+                <div>
+                  <p className="text-xs text-gray-400 mb-2">標籤（最多 3 個）</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["求購", "出售", "心得", "開箱", "比賽", "教學", "詢問", "新手"].map(tag => (
+                      <button key={tag} type="button"
+                        onClick={() => setEditTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : prev.length < 3 ? [...prev, tag] : prev)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${editTags.includes(tag) ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}>
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {/* 圖片編輯 */}
                 <div>
                   <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
@@ -220,7 +314,7 @@ export default function PostDetailClient({ id }: { id: string }) {
             <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
               {user?.id === post.author_id && !editing && (
                 <>
-                  <button onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); setEditImages(post.image_urls ?? []); }}
+                  <button onClick={() => { setEditing(true); setEditTitle(post.title); setEditContent(post.content); setEditImages(post.image_urls ?? []); setEditTags(post.tags ?? []); }}
                     className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors">
                     <Edit2 className="w-3 h-3" /> 編輯
                   </button>
@@ -250,6 +344,17 @@ export default function PostDetailClient({ id }: { id: string }) {
               </Link>
               <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
               <span>{timeAgo(new Date(post.created_at))}</span>
+              <button onClick={toggleBookmark} disabled={bookmarkLoading}
+                className={`flex items-center gap-1 text-xs transition-colors disabled:opacity-50 ${isBookmarked ? "text-brand-400" : "text-gray-500 hover:text-gray-300"}`}>
+                <Bookmark className={`w-3 h-3 ${isBookmarked ? "fill-current" : ""}`} />
+                {isBookmarked ? "已收藏" : "收藏"}
+              </button>
+              {user && user.id !== post.author_id && (
+                <button onClick={() => setShowReport(true)}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-red-400 transition-colors">
+                  <Flag className="w-3 h-3" /> 檢舉
+                </button>
+              )}
             </div>
             {!editing && (
               <div className="space-y-4">

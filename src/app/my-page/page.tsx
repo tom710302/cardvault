@@ -8,6 +8,7 @@ import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, C
 import { cn, formatPrice } from "@/lib/utils";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TrustBadge } from "@/components/trade/TrustBadge";
+import { useToast } from "@/components/ui/Toast";
 
 interface Profile {
   id: string; username: string; display_name: string | null; bio: string | null;
@@ -50,6 +51,7 @@ export default function MyPage() {
   const avatarFileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
 
   const fetchCollection = useCallback(async () => {
     const res = await fetch("/api/collections");
@@ -116,7 +118,7 @@ export default function MyPage() {
     setSavingProfile(true);
     const { error } = await supabase.from("profiles").update({ username: editForm.username, display_name: editForm.display_name, bio: editForm.bio, updated_at: new Date().toISOString() }).eq("id", profile.id);
     if (!error) { setProfile(p => p ? { ...p, ...editForm } : p); setShowEditProfile(false); }
-    else alert(error.message);
+    else toast.error(error.message);
     setSavingProfile(false);
   }
 
@@ -141,7 +143,7 @@ export default function MyPage() {
   async function addCardToCollection(e: React.FormEvent) {
     e.preventDefault();
     const custom_name = addCardForm.card_id ? "" : colCardSearch.trim();
-    if (!addCardForm.card_id && !custom_name) { alert("請輸入或選擇卡牌名稱"); return; }
+    if (!addCardForm.card_id && !custom_name) { toast.error("請輸入或選擇卡牌名稱"); return; }
     setColSubmitting(true);
     const res = await fetch("/api/collections", {
       method: "POST",
@@ -155,7 +157,7 @@ export default function MyPage() {
       fetchCollection();
     } else {
       const { error } = await res.json();
-      alert(error ?? "新增失敗");
+      toast.error(error ?? "新增失敗");
     }
     setColSubmitting(false);
   }

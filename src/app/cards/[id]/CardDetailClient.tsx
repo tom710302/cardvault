@@ -7,6 +7,7 @@ import { formatPrice, timeAgo } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useToast } from "@/components/ui/Toast";
 
 const PriceChart = dynamic(() => import("@/components/ui/PriceChart").then(m => m.PriceChart), { ssr: false });
 
@@ -43,6 +44,7 @@ export default function CardDetailClient({ id }: { id: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [inCollection, setInCollection] = useState(false);
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -90,10 +92,10 @@ export default function CardDetailClient({ id }: { id: string }) {
       const { card } = await res.json();
       setCard(card);
       setShowEdit(false);
-      alert("✅ 卡牌資料已更新！");
+      toast.success("卡牌資料已更新！");
     } else {
       const { error } = await res.json();
-      alert(error ?? "更新失敗");
+      toast.error(error ?? "更新失敗");
     }
     setEditSaving(false);
   }
@@ -114,7 +116,7 @@ export default function CardDetailClient({ id }: { id: string }) {
       window.location.href = "/collection";
     } else {
       const { error } = await res.json();
-      alert(error ?? "新增失敗");
+      toast.error(error ?? "新增失敗");
     }
   }
 
@@ -131,7 +133,7 @@ export default function CardDetailClient({ id }: { id: string }) {
       setShowPriceReport(false);
       setPriceForm({ price: "", condition: "NM", source_url: "" });
       fetchPriceReports();
-      alert("感謝你的價格回報！");
+      toast.success("感謝你的價格回報！");
     }
     setSubmitting(false);
   }
@@ -301,7 +303,7 @@ export default function CardDetailClient({ id }: { id: string }) {
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-brand-600/20 text-brand-400 border-brand-500/30 hover:bg-brand-600/30">
               <Heart className="w-4 h-4" /> 收藏
             </button>
-            <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("連結已複製！"); }}
+            <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("連結已複製！"); }}
               className="px-3 py-2.5 rounded-xl bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors">
               <Share2 className="w-4 h-4" />
             </button>

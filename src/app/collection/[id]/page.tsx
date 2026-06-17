@@ -7,6 +7,7 @@ import { ArrowLeft, Share2, TrendingUp, MessageSquare } from "lucide-react";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
 
 const PriceChart = dynamic(() => import("@/components/ui/PriceChart").then(m => m.PriceChart), { ssr: false });
 
@@ -28,6 +29,7 @@ export default function CollectionItemPage({ params }: { params: { id: string } 
   const [activeTab, setActiveTab] = useState<"overview" | "price" | "discussion">("overview");
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     async function load() {
@@ -100,7 +102,7 @@ export default function CollectionItemPage({ params }: { params: { id: string } 
               <span>{gameEmoji[displayGame ?? ""] ?? "🃏"}</span>
             )}
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("連結已複製！"); }}
+          <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("連結已複製！"); }}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors">
             <Share2 className="w-4 h-4" /> 分享
           </button>

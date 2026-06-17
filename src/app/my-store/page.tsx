@@ -6,6 +6,7 @@ import { Plus, Trash2, X, Package, Calendar, Store, Edit2, Save, AlertCircle } f
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 interface Product {
   id: string; name: string; description: string | null; price: number | null;
@@ -49,6 +50,7 @@ export default function MyStorePage() {
 
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     async function load() {
@@ -106,7 +108,7 @@ export default function MyStorePage() {
       setEditProduct(null);
       setProductForm({ name: "", description: "", price: "", stock: "0", image_url: "", category: "", game: "" });
       fetchProducts();
-    } else { const { error } = await res.json(); alert(error ?? "操作失敗"); }
+    } else { const { error } = await res.json(); toast.error(error ?? "操作失敗"); }
     setProductSubmitting(false);
   }
 
@@ -130,7 +132,7 @@ export default function MyStorePage() {
       setShowAddEvent(false);
       setEventForm({ title: "", description: "", event_date: "", end_date: "", location: "", registration_url: "", registration_info: "", image_url: "", image_urls: [] });
       fetchEvents();
-    } else { const { error } = await res.json(); alert(error ?? "新增失敗"); }
+    } else { const { error } = await res.json(); toast.error(error ?? "新增失敗"); }
     setEventSubmitting(false);
   }
 
@@ -154,8 +156,8 @@ export default function MyStorePage() {
       games: infoForm.games,
       products: infoForm.products_tags.split(",").map(s => s.trim()).filter(Boolean),
     }).eq("id", storeId);
-    if (!error) alert("✅ 店舖資訊已更新！");
-    else alert(error.message);
+    if (!error) toast.success("店舖資訊已更新！");
+    else toast.error(error.message);
     setInfoSaving(false);
   }
 

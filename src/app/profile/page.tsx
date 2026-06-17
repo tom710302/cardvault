@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { User, Save, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -14,6 +15,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     async function load() {
@@ -47,7 +49,7 @@ export default function ProfilePage() {
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${window.location.origin}/auth/callback`,
     });
-    if (!error) alert("密碼重設信已寄出，請查看信箱！");
+    if (!error) toast.success("密碼重設信已寄出，請查看信箱！");
   }
 
   if (loading) return (

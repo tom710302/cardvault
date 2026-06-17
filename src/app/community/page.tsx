@@ -15,11 +15,13 @@ function stripMarkdown(text: string) {
 }
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useToast } from "@/components/ui/Toast";
 
 interface Post {
   id: string; title: string; content: string; board: string; post_type: string;
   upvotes: number; view_count: number; created_at: string;
   image_urls?: string[] | null;
+  tags?: string[] | null;
   profiles: { username: string; avatar_url: string | null; reputation: number } | null;
 }
 interface ShowcaseUser {
@@ -66,6 +68,7 @@ function CommunityContent() {
   const router = useRouter();
   const tab = searchParams.get("tab") ?? "discussion";
   const supabase = createClient();
+  const toast = useToast();
 
   // Shared
   const [user, setUser] = useState<any>(null);
@@ -82,7 +85,16 @@ function CommunityContent() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "", board: "general", post_type: "discussion" });
   const [postImages, setPostImages] = useState<string[]>([]);
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Leaderboard tab
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+  // Bookmarks
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   // Showcase tab
   const [showcaseFilter, setShowcaseFilter] = useState("all");
@@ -90,7 +102,17 @@ function CommunityContent() {
   const [showcaseLoading, setShowcaseLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        fetch("/api/post-bookmarks")
+          .then(r => r.json())
+          .then(({ bookmarks }) => {
+            setBookmarkedIds(new Set((bookmarks ?? []).map((b: any) => b.post_id)));
+          })
+          .catch(() => {});
+      }
+    });
     fetch("/api/settings?key=community_rules")
       .then(r => r.json())
       .then(({ value }) => { if (Array.isArray(value) && value.length > 0) setCommunityRules(value); })
@@ -99,23 +121,33 @@ function CommunityContent() {
 
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
-    // "cards" is a virtual board: all posts except store
     const boardParam = activeBoard === "all" || activeBoard === "cards" ? "" : `&board=${activeBoard}`;
     const res = await fetch(`/api/posts?limit=50${boardParam}`);
     if (res.ok) {
       const { posts } = await res.json();
       let sorted: Post[] = [...(posts ?? [])];
       if (activeBoard === "cards") sorted = sorted.filter(p => p.board !== "store");
+      if (activeTag) sorted = sorted.filter(p => p.tags?.includes(activeTag));
       if (activeSort === "hot") sorted.sort((a, b) => b.upvotes - a.upvotes);
       if (activeSort === "top") sorted.sort((a, b) => (b.upvotes + b.view_count) - (a.upvotes + a.view_count));
       setPosts(sorted);
     }
     setPostsLoading(false);
-  }, [activeBoard, activeSort]);
+  }, [activeBoard, activeSort, activeTag]);
 
   useEffect(() => {
     if (tab === "discussion") { const t = setTimeout(fetchPosts, 300); return () => clearTimeout(t); }
   }, [tab, fetchPosts]);
+
+  useEffect(() => {
+    if (tab !== "leaderboard") return;
+    setLeaderboardLoading(true);
+    fetch("/api/community/leaderboard")
+      .then(r => r.json())
+      .then(({ users }) => setLeaderboard(users ?? []))
+      .catch(() => {})
+      .finally(() => setLeaderboardLoading(false));
+  }, [tab]);
 
   useEffect(() => {
     if (tab !== "showcase") return;
@@ -127,23 +159,38 @@ function CommunityContent() {
       .finally(() => setShowcaseLoading(false));
   }, [tab]);
 
+  async function toggleBookmark(e: React.MouseEvent, postId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { router.push("/auth/login"); return; }
+    const isBookmarked = bookmarkedIds.has(postId);
+    if (isBookmarked) {
+      await fetch("/api/post-bookmarks", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: postId }) });
+      setBookmarkedIds(prev => { const next = new Set(prev); next.delete(postId); return next; });
+    } else {
+      await fetch("/api/post-bookmarks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_id: postId }) });
+      setBookmarkedIds(prev => new Set(Array.from(prev).concat(postId)));
+    }
+  }
+
   async function submitPost(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) { alert("請先登入"); return; }
+    if (!user) { toast.error("請先登入"); return; }
     setSubmitting(true);
     const res = await fetch("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newPost, image_urls: postImages }),
+      body: JSON.stringify({ ...newPost, image_urls: postImages, tags: postTags }),
     });
     if (res.ok) {
       setShowNewPost(false);
       setNewPost({ title: "", content: "", board: "general", post_type: "discussion" });
       setPostImages([]);
+      setPostTags([]);
       fetchPosts();
     } else {
       const { error } = await res.json();
-      alert(error ?? "發文失敗");
+      toast.error(error ?? "發文失敗");
     }
     setSubmitting(false);
   }
@@ -193,6 +240,18 @@ function CommunityContent() {
                 <textarea value={newPost.content} onChange={e => setNewPost(v => ({ ...v, content: e.target.value }))}
                   placeholder="分享你的想法..." required rows={5}
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">標籤（最多 3 個）</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["求購", "出售", "心得", "開箱", "比賽", "教學", "詢問", "新手"].map(tag => (
+                    <button key={tag} type="button"
+                      onClick={() => setPostTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : prev.length < 3 ? [...prev, tag] : prev)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${postTags.includes(tag) ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}>
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1 flex items-center gap-1">
@@ -250,6 +309,7 @@ function CommunityContent() {
         {[
           { id: "discussion", label: "💬 討論區" },
           { id: "showcase", label: "✨ 收藏展示" },
+          { id: "leaderboard", label: "🏆 排行榜" },
         ].map(({ id, label }) => (
           <button key={id} onClick={() => router.replace(`/community?tab=${id}`)}
             className={cn("px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
@@ -316,6 +376,20 @@ function CommunityContent() {
               </ul>
             </div>
             <div className="glass rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">標籤篩選</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {["求購", "出售", "心得", "開箱", "比賽", "教學", "詢問", "新手"].map(tag => (
+                  <button key={tag} onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                    className={`px-2 py-1 rounded-full text-xs transition-colors ${activeTag === tag ? "bg-brand-600 text-white" : "bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300"}`}>
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+              {activeTag && (
+                <button onClick={() => setActiveTag(null)} className="mt-2 text-xs text-gray-600 hover:text-gray-400 transition-colors">✕ 清除篩選</button>
+              )}
+            </div>
+            <div className="glass rounded-xl p-4">
               <h3 className="text-sm font-semibold text-gray-300 mb-2">發文規則</h3>
               <ul className="text-xs text-gray-500 space-y-1.5">
                 {communityRules.map((r, i) => (
@@ -360,6 +434,9 @@ function CommunityContent() {
                         {typeLabel[post.post_type]}
                       </span>
                       <span className="badge text-xs bg-gray-800 text-gray-400">{post.board}</span>
+                      {post.tags?.map(tag => (
+                        <span key={tag} className="badge text-xs bg-brand-900/40 text-brand-400">#{tag}</span>
+                      ))}
                     </div>
                     <h2 className="font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">{post.title}</h2>
                     <p className="text-sm text-gray-500 line-clamp-1">{stripMarkdown(post.content)}</p>
@@ -387,6 +464,10 @@ function CommunityContent() {
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> 留言</span>
                       <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
                       <span>{timeAgo(new Date(post.created_at))}</span>
+                      <button onClick={e => toggleBookmark(e, post.id)}
+                        className={`ml-auto flex items-center gap-1 transition-colors ${bookmarkedIds.has(post.id) ? "text-brand-400" : "text-gray-600 hover:text-gray-400"}`}>
+                        {bookmarkedIds.has(post.id) ? "🔖" : "🔖"} {bookmarkedIds.has(post.id) ? "已收藏" : "收藏"}
+                      </button>
                     </div>
                   </div>
                 </Link>
@@ -509,6 +590,64 @@ function CommunityContent() {
                         <Trophy className="w-3 h-3" /> {u.reputation} 聲望
                       </span>
                     </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Leaderboard Tab ── */}
+      {tab === "leaderboard" && (
+        <div className="space-y-4 max-w-2xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">聲望排行榜</h2>
+              <p className="text-xs text-gray-500 mt-0.5">活躍貢獻越多，聲望越高</p>
+            </div>
+          </div>
+          {leaderboardLoading ? (
+            <div className="space-y-2">{Array(10).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-14 shimmer" />)}</div>
+          ) : leaderboard.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">還沒有排行資料</div>
+          ) : (
+            <div className="space-y-2">
+              {leaderboard.map((u, i) => (
+                <Link href={`/users/${u.id}`} key={u.id}
+                  className="glass rounded-xl px-4 py-3 flex items-center gap-4 card-hover group">
+                  {/* Rank */}
+                  <div className={`w-8 text-center font-bold shrink-0 ${i === 0 ? "text-yellow-400 text-lg" : i === 1 ? "text-gray-300 text-base" : i === 2 ? "text-amber-600 text-base" : "text-gray-600 text-sm"}`}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                  </div>
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold text-sm overflow-hidden shrink-0">
+                    {u.avatar_url
+                      ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                      : u.username?.[0]?.toUpperCase()}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-100 group-hover:text-white transition-colors text-sm truncate">
+                        {u.display_name ?? u.username}
+                      </span>
+                      {(u.trade_tier === "收藏家" || u.trade_tier === "卡牌大師" || u.trade_tier === "老手") && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${
+                          u.trade_tier === "卡牌大師" ? "bg-orange-900/30 text-orange-400 border-orange-800/30"
+                          : u.trade_tier === "收藏家" ? "bg-yellow-900/30 text-yellow-400 border-yellow-800/30"
+                          : "bg-gray-800 text-gray-400 border-gray-700"
+                        }`}>
+                          {u.trade_tier === "卡牌大師" ? "👑" : u.trade_tier === "收藏家" ? "⭐" : ""} {u.trade_tier}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-600">@{u.username} · 完成換卡 {u.completed_trades} 次</div>
+                  </div>
+                  {/* Reputation */}
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-brand-400 text-sm">{u.reputation.toLocaleString()}</div>
+                    <div className="text-xs text-gray-600">聲望</div>
                   </div>
                 </Link>
               ))}

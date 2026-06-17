@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ─── */
 interface Store {
@@ -74,6 +75,7 @@ function SearchContent() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -139,14 +141,14 @@ function SearchContent() {
 
   async function submitEvent(ev: React.FormEvent) {
     ev.preventDefault();
-    if (!user) { alert("請先登入"); return; }
+    if (!user) { toast.error("請先登入"); return; }
     setSubmitting(true);
     const res = await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     if (res.ok) {
       setShowSubmit(false); setForm(defaultForm);
-      alert("✅ 賽事已送出，等待審核後將顯示於列表。");
+      toast.success("賽事已送出，等待審核後將顯示於列表。");
       fetchEvents();
-    } else { const { error } = await res.json(); alert(error ?? "送出失敗"); }
+    } else { const { error } = await res.json(); toast.error(error ?? "送出失敗"); }
     setSubmitting(false);
   }
 

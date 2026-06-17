@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Clock, Gavel, Users, TrendingUp, CheckCircle, Crown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/Toast";
 
 interface Auction {
   id: string; title: string; description: string | null; image_url: string | null;
@@ -48,6 +49,7 @@ export default function AuctionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
 
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -89,7 +91,7 @@ export default function AuctionDetailPage() {
       await fetchAuction();
     } else {
       const { error } = await res.json();
-      alert(error ?? "出價失敗");
+      toast.error(error ?? "出價失敗");
     }
     setSubmitting(false);
   }
@@ -103,7 +105,7 @@ export default function AuctionDetailPage() {
       body: JSON.stringify({ status: "ended" }),
     });
     if (res.ok) await fetchAuction();
-    else alert("結標失敗");
+    else toast.error("結標失敗");
     setEnding(false);
   }
 

@@ -9,10 +9,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const { data: post } = await supabase.from("posts").select("author_id").eq("id", params.id).single();
   if (post?.author_id !== user.id) return NextResponse.json({ error: "無權限" }, { status: 403 });
 
-  const { title, content, image_urls } = await request.json();
+  const { title, content, image_urls, tags } = await request.json();
   const { data, error } = await supabase
     .from("posts")
-    .update({ title, content, image_urls: image_urls ?? null, updated_at: new Date().toISOString() })
+    .update({ title, content, image_urls: image_urls ?? null, tags: tags?.length ? tags : null, updated_at: new Date().toISOString() })
     .eq("id", params.id)
     .select().single();
 

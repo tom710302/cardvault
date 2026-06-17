@@ -6,6 +6,7 @@ import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useToast } from "@/components/ui/Toast";
 
 interface CollectionItem {
   id: string; card_id: string | null; custom_name: string | null; condition: string; quantity: number; notes: string | null;
@@ -27,6 +28,7 @@ export default function CollectionPage() {
   const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public", custom_name: "" });
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -53,7 +55,7 @@ export default function CollectionPage() {
   async function addToCollection(e: React.FormEvent) {
     e.preventDefault();
     const custom_name = addForm.card_id ? "" : cardSearch.trim();
-    if (!addForm.card_id && !custom_name) { alert("請輸入或選擇卡牌名稱"); return; }
+    if (!addForm.card_id && !custom_name) { toast.error("請輸入或選擇卡牌名稱"); return; }
     setSubmitting(true);
     const res = await fetch("/api/collections", {
       method: "POST",
@@ -67,7 +69,7 @@ export default function CollectionPage() {
       fetchCollection();
     } else {
       const { error } = await res.json();
-      alert(error ?? "新增失敗");
+      toast.error(error ?? "新增失敗");
     }
     setSubmitting(false);
   }
