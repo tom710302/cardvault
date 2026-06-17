@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search, User, Menu, X, Layers, LogOut, Shield, BookmarkPlus } from "lucide-react";
+import { Bell, Search, User, Menu, X, Layers, LogOut, Shield, BookmarkPlus, MessageSquare } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +29,7 @@ export function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -48,6 +49,14 @@ export function Navbar() {
       const { notifications } = await res.json();
       setNotifications(notifications ?? []);
       setUnreadCount(notifications?.filter((n: any) => !n.is_read).length ?? 0);
+    }
+  }
+
+  async function fetchUnreadMessages() {
+    const res = await fetch("/api/messages");
+    if (res.ok) {
+      const { unread_total } = await res.json();
+      setUnreadMessages(unread_total ?? 0);
     }
   }
 
@@ -71,6 +80,7 @@ export function Navbar() {
         supabase.from("profiles").select("username, role").eq("id", user.id).single()
           .then(({ data }) => setProfile(data));
         fetchNotifications();
+        fetchUnreadMessages();
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -156,6 +166,18 @@ export function Navbar() {
               </div>
             )}
           </div>
+          {user && (
+            <Link href="/messages"
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-white/5 transition-colors relative">
+              <MessageSquare className="w-5 h-5" />
+              {unreadMessages > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          )}
+
           <div ref={notifRef} className="relative">
             <button onClick={() => { setNotifOpen(v => !v); if (!notifOpen && user) fetchNotifications(); }}
               className="p-2 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-white/5 transition-colors relative">

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -48,6 +48,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [startingConv, setStartingConv] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -104,6 +105,23 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       toast.success(data.blocked ? "已封鎖此用戶" : "已解除封鎖");
     }
     setBlockLoading(false);
+  }
+
+  async function startConversation() {
+    if (!currentUser || startingConv) return;
+    setStartingConv(true);
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target_user_id: params.id }),
+    });
+    if (res.ok) {
+      const { conversation } = await res.json();
+      router.push(`/messages/${conversation.id}`);
+    } else {
+      toast.error("無法開啟對話");
+      setStartingConv(false);
+    }
   }
 
   async function submitReport() {
@@ -202,9 +220,15 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
         {/* Action Buttons */}
         <div className="flex gap-2 flex-wrap">
+          {currentUser && (
+            <button onClick={startConversation} disabled={startingConv}
+              className="flex-1 btn-primary text-sm py-2 flex items-center justify-center gap-2 disabled:opacity-50">
+              <Mail className="w-4 h-4" /> {startingConv ? "開啟中..." : "傳送訊息"}
+            </button>
+          )}
           <Link href={`/community?search=${encodeURIComponent(profile.username)}`}
             className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
-            <MessageSquare className="w-4 h-4" /> 查看 TA 的文章
+            <MessageSquare className="w-4 h-4" /> 查看文章
           </Link>
           <button
             onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("連結已複製！"); }}
