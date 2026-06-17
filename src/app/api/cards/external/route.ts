@@ -37,7 +37,7 @@ const ZH_TO_EN: Record<string, string> = {
   尼多朗:"Nidoran",尼多娜:"Nidorina",尼多后:"Nidoqueen",
   鐵甲蛹:"Kakuna",綠毛蟲:"Caterpie",巴大蝶:"Butterfree",
   烈雀:"Talonflame",閃焰鷹:"Fletchinder",
-  路卡利歐:"Lucario",波加曼:"Riolu",
+  路卡利歐:"Lucario",利歐路:"Riolu",
   耿鬼:"Gengar",鬼斯:"Gastly",鬼斯通:"Haunter",
   化石翼龍:"Aerodactyl",
   // 傳說
