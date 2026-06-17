@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2 } from "lucide-react";
+import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2, DollarSign } from "lucide-react";
 import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -47,6 +47,9 @@ export default function CollectionPage() {
   const [cardSearch, setCardSearch] = useState("");
   const [addForm, setAddForm] = useState({ card_id: "", condition: "NM", quantity: 1, notes: "", image_url: "", visibility: "public", custom_name: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [totalValue, setTotalValue] = useState<number | null>(null);
+  const [cardPrices, setCardPrices] = useState<Record<string, number>>({});
+  const [pricedCount, setPricedCount] = useState(0);
   const supabase = createClient();
   const toast = useToast();
 
@@ -60,8 +63,17 @@ export default function CollectionPage() {
 
   const fetchCollection = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/collections");
-    if (res.ok) { const { collections } = await res.json(); setItems(collections ?? []); }
+    const [colRes, valRes] = await Promise.all([
+      fetch("/api/collections"),
+      fetch("/api/collections/value"),
+    ]);
+    if (colRes.ok) { const { collections } = await colRes.json(); setItems(collections ?? []); }
+    if (valRes.ok) {
+      const { total_value, card_prices, priced_count } = await valRes.json();
+      setTotalValue(total_value ?? null);
+      setCardPrices(card_prices ?? {});
+      setPricedCount(priced_count ?? 0);
+    }
     setLoading(false);
   }, []);
 
@@ -247,7 +259,17 @@ export default function CollectionPage() {
         <div className="glass rounded-xl p-4"><div className="flex items-center gap-2 mb-2 text-blue-400"><Package className="w-4 h-4" /><span className="text-xs text-gray-500">總收藏數</span></div><div className="text-2xl font-bold text-white">{totalCards} 張</div></div>
         <div className="glass rounded-xl p-4"><div className="flex items-center gap-2 mb-2 text-green-400"><TrendingUp className="w-4 h-4" /><span className="text-xs text-gray-500">種類數</span></div><div className="text-2xl font-bold text-white">{items.length} 種</div></div>
         <div className="glass rounded-xl p-4"><div className="flex items-center gap-2 mb-2 text-yellow-400"><Star className="w-4 h-4" /><span className="text-xs text-gray-500">遊戲種類</span></div><div className="text-2xl font-bold text-white">{new Set(items.map(i => i.cards?.game)).size} 種</div></div>
-        <div className="glass rounded-xl p-4"><div className="flex items-center gap-2 mb-2 text-brand-400"><BarChart3 className="w-4 h-4" /><span className="text-xs text-gray-500">已評級</span></div><div className="text-2xl font-bold text-white">{items.filter(i => i.condition.includes("PSA") || i.condition.includes("BGS")).length} 張</div></div>
+        <div className="glass rounded-xl p-4 relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-2 text-emerald-400"><DollarSign className="w-4 h-4" /><span className="text-xs text-gray-500">估計總價值</span></div>
+          {totalValue !== null && totalValue > 0 ? (
+            <>
+              <div className="text-2xl font-bold text-emerald-400">{formatPrice(totalValue)}</div>
+              <div className="text-[10px] text-gray-600 mt-1">{pricedCount}/{items.length} 張有行情資料</div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500">尚無行情資料</div>
+          )}
+        </div>
       </div>
 
       {/* Controls */}
@@ -305,6 +327,9 @@ export default function CollectionPage() {
                     <div className="p-2.5 space-y-1">
                       <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name ?? item.custom_name}</div>
                       <div className="text-[10px] text-gray-500">{item.cards?.game ?? "自訂"} · {item.condition}</div>
+                      {item.card_id && cardPrices[item.card_id] ? (
+                        <div className="text-[10px] text-emerald-400 font-medium">{formatPrice(cardPrices[item.card_id])}</div>
+                      ) : null}
                       {item.notes && <div className="text-[10px] text-gray-600 italic truncate">{item.notes}</div>}
                     </div>
                   </>
@@ -343,6 +368,9 @@ export default function CollectionPage() {
                 {item.notes && <div className="text-xs text-gray-600 italic mt-1">{item.notes}</div>}
               </div>
               <div className="flex items-center gap-3 shrink-0">
+                {item.card_id && cardPrices[item.card_id] ? (
+                  <span className="text-sm font-medium text-emerald-400">{formatPrice(cardPrices[item.card_id])}</span>
+                ) : null}
                 <span className="text-sm text-gray-400">x{item.quantity}</span>
                 <button onClick={() => removeFromCollection(item.id)}
                   className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
