@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw } from "lucide-react";
+import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw, ImageIcon } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
@@ -1259,6 +1259,8 @@ function PageEditor({ settingKey, title, href }: { settingKey: string; title: st
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showImgUpload, setShowImgUpload] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetch(`/api/settings?key=${settingKey}`)
@@ -1281,6 +1283,18 @@ function PageEditor({ settingKey, title, href }: { settingKey: string; title: st
     setTimeout(() => setSaved(false), 2000);
   }
 
+  function insertImage(url: string) {
+    const tag = `\n\n![圖片](${url})\n\n`;
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart ?? content.length;
+      setContent(c => c.slice(0, start) + tag + c.slice(start));
+    } else {
+      setContent(c => c + tag);
+    }
+    setShowImgUpload(false);
+  }
+
   return (
     <div className="glass rounded-xl p-5 space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -1297,15 +1311,38 @@ function PageEditor({ settingKey, title, href }: { settingKey: string; title: st
       {!loaded ? (
         <div className="h-32 glass rounded-lg shimmer" />
       ) : (
-        <textarea
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          placeholder={`填寫「${title}」的頁面內容…\n\n支援簡易語法：\n## 這是小標題\n\n空一行代表新段落`}
-          rows={10}
-          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-600 outline-none focus:ring-2 focus:ring-brand-500 resize-y font-mono leading-relaxed"
-        />
+        <>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowImgUpload(v => !v)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <ImageIcon className="w-3.5 h-3.5" /> 插入圖片
+            </button>
+          </div>
+          {showImgUpload && (
+            <div className="border border-white/10 rounded-xl p-4">
+              <p className="text-xs text-gray-400 mb-3">上傳後自動插入到游標位置</p>
+              <ImageUpload
+                folder="pages"
+                label="上傳圖片"
+                onUpload={url => insertImage(url)}
+                onRemove={() => {}}
+              />
+            </div>
+          )}
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder={`填寫「${title}」的頁面內容…\n\n支援簡易語法：\n## 這是小標題\n![圖片說明](圖片網址)\n\n空一行代表新段落`}
+            rows={10}
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-600 outline-none focus:ring-2 focus:ring-brand-500 resize-y font-mono leading-relaxed"
+          />
+        </>
       )}
-      <p className="text-[11px] text-gray-600">空行分段 · <code className="text-gray-500">## 文字</code> 為小標題 · 儲存後立即生效</p>
+      <p className="text-[11px] text-gray-600">空行分段 · <code className="text-gray-500">## 文字</code> 為小標題 · <code className="text-gray-500">![說明](網址)</code> 插入圖片</p>
     </div>
   );
 }

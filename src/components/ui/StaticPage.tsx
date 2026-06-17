@@ -48,6 +48,17 @@ export async function StaticPage({ settingKey, title, backHref = "/" }: Props) {
                     </h2>
                   );
                 }
+                const imgMatch = para.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+                if (imgMatch) {
+                  return (
+                    <img
+                      key={i}
+                      src={imgMatch[2]}
+                      alt={imgMatch[1]}
+                      className="rounded-xl w-full max-h-[480px] object-cover my-2"
+                    />
+                  );
+                }
                 return (
                   <p key={i}>
                     {para.split("\n").map((line, j, arr) => (
