@@ -44,9 +44,9 @@ export function Footer() {
         <div>
           <h4 className="text-sm font-semibold text-gray-300 mb-3">關於</h4>
           <ul className="space-y-2 text-sm text-gray-500">
-            {["關於我們", "使用條款", "隱私政策", "聯絡我們"].map((item) => (
-              <li key={item}>
-                <Link href="#" className="hover:text-gray-300 transition-colors">{item}</Link>
+            {[["關於我們", "/about"], ["使用條款", "/terms"], ["隱私政策", "/privacy"], ["聯絡我們", "/contact"]].map(([label, href]) => (
+              <li key={label}>
+                <Link href={href} className="hover:text-gray-300 transition-colors">{label}</Link>
               </li>
             ))}
           </ul>

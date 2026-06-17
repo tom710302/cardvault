@@ -895,6 +895,21 @@ export default function AdminPage() {
                 }
               }}
             />
+
+            <div className="border-t border-white/10 pt-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">📄 靜態頁面內容</h2>
+                <p className="text-sm text-gray-500 mt-0.5">管理 Footer 關於欄位的四個頁面內容，支援 ## 標題語法</p>
+              </div>
+              {[
+                { key: "page_about", title: "關於我們", href: "/about" },
+                { key: "page_terms", title: "使用條款", href: "/terms" },
+                { key: "page_privacy", title: "隱私政策", href: "/privacy" },
+                { key: "page_contact", title: "聯絡我們", href: "/contact" },
+              ].map(p => (
+                <PageEditor key={p.key} settingKey={p.key} title={p.title} href={p.href} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -1235,6 +1250,62 @@ function ContentEditor({ title, description, settingKey, rules, setRules, saving
         </button>
         <p className="text-xs text-gray-600">儲存後立即在網站前台生效</p>
       </div>
+    </div>
+  );
+}
+
+function PageEditor({ settingKey, title, href }: { settingKey: string; title: string; href: string }) {
+  const [content, setContent] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/settings?key=${settingKey}`)
+      .then(r => r.json())
+      .then(({ value }) => {
+        if (typeof value === "string") setContent(value);
+        setLoaded(true);
+      });
+  }, [settingKey]);
+
+  async function handleSave() {
+    setSaving(true);
+    await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: settingKey, value: content }),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="glass rounded-xl p-5 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <a href={href} target="_blank" rel="noopener noreferrer"
+            className="text-[11px] text-brand-400 hover:text-brand-300">{href} ↗</a>
+        </div>
+        <button onClick={handleSave} disabled={saving || !loaded}
+          className="btn-primary text-xs px-4 py-1.5 flex items-center gap-1.5 disabled:opacity-50 shrink-0">
+          {saving ? "儲存中…" : saved ? "✓ 已儲存" : "儲存"}
+        </button>
+      </div>
+      {!loaded ? (
+        <div className="h-32 glass rounded-lg shimmer" />
+      ) : (
+        <textarea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder={`填寫「${title}」的頁面內容…\n\n支援簡易語法：\n## 這是小標題\n\n空一行代表新段落`}
+          rows={10}
+          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-600 outline-none focus:ring-2 focus:ring-brand-500 resize-y font-mono leading-relaxed"
+        />
+      )}
+      <p className="text-[11px] text-gray-600">空行分段 · <code className="text-gray-500">## 文字</code> 為小標題 · 儲存後立即生效</p>
     </div>
   );
 }
