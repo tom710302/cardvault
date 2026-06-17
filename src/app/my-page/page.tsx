@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight, Search, List, BarChart3, TrendingUp } from "lucide-react";
+import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight, Search, List, BarChart3, TrendingUp, Bookmark, MessageSquare } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TrustBadge } from "@/components/trade/TrustBadge";
@@ -32,7 +32,9 @@ export default function MyPage() {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [posts, setPosts] = useState<ShowcasePost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"collection" | "posts" | "trade" | "settings">("collection");
+  const [tab, setTab] = useState<"collection" | "posts" | "trade" | "bookmarks" | "settings">("collection");
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
   const [colView, setColView] = useState<"grid" | "list">("grid");
   const [colSearch, setColSearch] = useState("");
@@ -57,6 +59,17 @@ export default function MyPage() {
     const res = await fetch("/api/collections");
     if (res.ok) { const { collections } = await res.json(); setCollection(collections ?? []); }
   }, []);
+
+  async function fetchBookmarks() {
+    setBookmarksLoading(true);
+    const res = await fetch("/api/post-bookmarks");
+    if (res.ok) { const { bookmarks } = await res.json(); setBookmarks(bookmarks ?? []); }
+    setBookmarksLoading(false);
+  }
+
+  useEffect(() => {
+    if (tab === "bookmarks") fetchBookmarks();
+  }, [tab]);
 
   useEffect(() => {
     async function load() {
@@ -421,6 +434,7 @@ export default function MyPage() {
           ["collection", <Grid3X3 className="w-5 h-5" />, "收藏"],
           ["posts", <Star className="w-5 h-5" />, "貼文"],
           ["trade", <ArrowLeftRight className="w-5 h-5" />, "換卡"],
+          ["bookmarks", <Bookmark className="w-5 h-5" />, "書籤"],
         ] as const).map(([id, icon, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-t-2 -mt-px transition-colors",
@@ -686,6 +700,51 @@ export default function MyPage() {
               登出
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Bookmarks Tab */}
+      {tab === "bookmarks" && (
+        <div className="px-4 py-5 space-y-3">
+          {bookmarksLoading ? (
+            <div className="space-y-3">{Array(4).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-20 shimmer" />)}</div>
+          ) : bookmarks.length === 0 ? (
+            <div className="text-center py-20 text-gray-500 space-y-3">
+              <Bookmark className="w-12 h-12 mx-auto opacity-30" />
+              <p>還沒有收藏任何文章</p>
+              <Link href="/community" className="btn-primary text-sm inline-flex gap-2">
+                <MessageSquare className="w-4 h-4" /> 去社群逛逛
+              </Link>
+            </div>
+          ) : (
+            bookmarks.map((b: any) => {
+              const post = b.posts;
+              if (!post) return null;
+              return (
+                <Link href={`/community/${post.id}`} key={b.post_id}
+                  className="glass rounded-xl p-4 flex gap-3 card-hover group block">
+                  {post.image_urls?.[0] && (
+                    <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                      <img src={post.image_urls[0]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h3 className="font-semibold text-gray-100 group-hover:text-white transition-colors text-sm leading-snug line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                      <span className="text-gray-400">@{post.profiles?.username}</span>
+                      <span className="flex items-center gap-1">▲ {post.upvotes}</span>
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {post.view_count}</span>
+                      {post.tags?.map((tag: string) => (
+                        <span key={tag} className="text-brand-500">#{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
+          )}
         </div>
       )}
 
