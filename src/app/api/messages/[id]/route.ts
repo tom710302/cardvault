@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const [{ data: messages }, { data: other }] = await Promise.all([
     admin.from("messages")
-      .select("id, sender_id, content, is_read, created_at")
+      .select("id, sender_id, content, media_url, media_type, is_read, created_at")
       .eq("conversation_id", params.id)
       .order("created_at", { ascending: true }),
     admin.from("profiles")
@@ -53,12 +53,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const conv = await verifyMember(params.id, user.id, admin);
   if (!conv) return NextResponse.json({ error: "找不到對話" }, { status: 404 });
 
-  const { content } = await request.json();
-  if (!content?.trim()) return NextResponse.json({ error: "訊息不能為空" }, { status: 400 });
+  const { content, media_url, media_type } = await request.json();
+  if (!content?.trim() && !media_url) return NextResponse.json({ error: "訊息不能為空" }, { status: 400 });
 
   const { data: message, error } = await admin
     .from("messages")
-    .insert({ conversation_id: params.id, sender_id: user.id, content: content.trim() })
+    .insert({
+      conversation_id: params.id,
+      sender_id: user.id,
+      content: content?.trim() || null,
+      media_url: media_url || null,
+      media_type: media_type || null,
+    })
     .select()
     .single();
 
