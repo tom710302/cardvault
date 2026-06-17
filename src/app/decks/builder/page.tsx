@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Plus, Minus, Trash2, Save, Share2, ArrowLeft, Eye, EyeOff, ChevronDown } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ interface DeckCard {
   image_url: string | null; quantity: number;
 }
 
-export default function DeckBuilderPage() {
+function DeckBuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("id");
@@ -292,5 +292,13 @@ export default function DeckBuilderPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DeckBuilderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">載入中...</div>}>
+      <DeckBuilderInner />
+    </Suspense>
   );
 }
