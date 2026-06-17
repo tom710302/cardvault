@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2 } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 interface Profile {
   id: string; username: string; display_name: string | null; bio: string | null;
@@ -23,12 +24,28 @@ interface Post {
 
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
+const RARITY_TIERS: [string[], string][] = [
+  [["hyper", "rainbow", "starlight", "prismatic", "gold star"], "text-yellow-300 bg-yellow-900/20 border-yellow-700/30"],
+  [["special art", "special illustration", "secret", "ultra", "mythic", "amazing"], "text-purple-400 bg-purple-900/30 border-purple-700/30"],
+  [["super", "holo", "full art", "illustration rare", "rare"], "text-blue-400 bg-blue-900/30 border-blue-700/30"],
+  [["uncommon"], "text-green-400 bg-green-900/20 border-green-700/20"],
+];
+function rarityColor(rarity: string | null | undefined): string {
+  if (!rarity) return "";
+  const r = rarity.toLowerCase();
+  for (const [kws, cls] of RARITY_TIERS) {
+    if (kws.some(k => r.includes(k))) return cls;
+  }
+  return "text-gray-400 bg-gray-800/50 border-gray-700/20";
+}
+
 export default function UserProfilePage({ params }: { params: { id: string } }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tab, setTab] = useState<"collection" | "posts" | "trade">("collection");
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [isMe, setIsMe] = useState(false);
   const supabase = createClient();
@@ -140,12 +157,18 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
           </div>
         </div>
 
-        {/* Message Button */}
+        {/* Action Buttons */}
         <div className="flex gap-2">
           <Link href={`/community?search=${encodeURIComponent(profile.username)}`}
             className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
             <MessageSquare className="w-4 h-4" /> 查看 TA 的文章
           </Link>
+          <button
+            onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("連結已複製！"); }}
+            className="btn-secondary text-sm py-2 px-4 flex items-center gap-2"
+          >
+            <Share2 className="w-4 h-4" /> 分享
+          </button>
         </div>
       </div>
 
@@ -192,6 +215,11 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                       <p className="text-white text-xs font-semibold text-center px-2 line-clamp-2">{item.cards?.name}</p>
                       <p className="text-gray-300 text-[10px]">{item.condition}</p>
+                      {item.cards?.rarity && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${rarityColor(item.cards.rarity)}`}>
+                          {item.cards.rarity}
+                        </span>
+                      )}
                     </div>
                     {item.quantity > 1 && (
                       <div className="absolute top-1.5 left-1.5 bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">

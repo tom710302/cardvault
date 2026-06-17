@@ -1,12 +1,32 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2 } from "lucide-react";
 import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
+
+const RARITY_TIERS: [string[], string][] = [
+  [["hyper", "rainbow", "starlight", "prismatic", "gold star"], "text-yellow-300 bg-yellow-900/20 border-yellow-700/30"],
+  [["special art", "special illustration", "secret", "ultra", "mythic", "amazing"], "text-purple-400 bg-purple-900/30 border-purple-700/30"],
+  [["super", "holo", "full art", "illustration rare", "rare"], "text-blue-400 bg-blue-900/30 border-blue-700/30"],
+  [["uncommon"], "text-green-400 bg-green-900/20 border-green-700/20"],
+];
+
+function rarityColor(rarity: string | null | undefined): string {
+  if (!rarity) return "";
+  const r = rarity.toLowerCase();
+  for (const [kws, cls] of RARITY_TIERS) {
+    if (kws.some(k => r.includes(k))) return cls;
+  }
+  return "text-gray-400 bg-gray-800/50 border-gray-700/20";
+}
+
+function rarityAbbr(rarity: string): string {
+  return rarity.length > 7 ? rarity.split(" ").map(w => w[0]).join("") : rarity;
+}
 
 interface CollectionItem {
   id: string; card_id: string | null; custom_name: string | null; condition: string; quantity: number; notes: string | null;
@@ -207,10 +227,19 @@ export default function CollectionPage() {
           <h1 className="text-3xl font-bold text-white">我的收藏庫</h1>
           <p className="text-gray-400 text-sm mt-1">管理、追蹤你的所有實體卡牌</p>
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="btn-primary flex items-center gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> 新增卡牌
-        </button>
+        <div className="flex items-center gap-2">
+          {user && (
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/users/${user.id}`); toast.success("收藏頁連結已複製！"); }}
+              className="btn-secondary flex items-center gap-2 shrink-0 text-sm"
+            >
+              <Share2 className="w-4 h-4" /> 分享
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2 shrink-0">
+            <Plus className="w-4 h-4" /> 新增卡牌
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -267,6 +296,11 @@ export default function CollectionPage() {
                       {item.quantity > 1 && (
                         <span className="absolute top-2 right-2 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{item.quantity}</span>
                       )}
+                      {item.cards?.rarity && (
+                        <span className={`absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded border backdrop-blur-sm leading-tight ${rarityColor(item.cards.rarity)}`}>
+                          {rarityAbbr(item.cards.rarity)}
+                        </span>
+                      )}
                     </div>
                     <div className="p-2.5 space-y-1">
                       <div className="text-xs font-semibold text-white line-clamp-1 group-hover:text-brand-300 transition-colors">{item.cards?.name ?? item.custom_name}</div>
@@ -298,7 +332,14 @@ export default function CollectionPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-white">{item.cards?.name ?? item.custom_name}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{item.cards?.game ?? "自訂"} · {item.cards?.set_name} · {item.condition}</div>
+                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span>{item.cards?.game ?? "自訂"} · {item.cards?.set_name} · {item.condition}</span>
+                  {item.cards?.rarity && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${rarityColor(item.cards.rarity)}`}>
+                      {item.cards.rarity}
+                    </span>
+                  )}
+                </div>
                 {item.notes && <div className="text-xs text-gray-600 italic mt-1">{item.notes}</div>}
               </div>
               <div className="flex items-center gap-3 shrink-0">
