@@ -54,7 +54,7 @@ export default function MessagesPage() {
                     {conv.other?.display_name ?? conv.other?.username}
                   </span>
                   <span className="text-xs text-gray-500 shrink-0">
-                    {conv.last_message ? timeAgo(conv.last_message.created_at) : ""}
+                    {conv.last_message ? timeAgo(new Date(conv.last_message.created_at)) : ""}
                   </span>
                 </div>
                 <p className={`text-xs truncate mt-0.5 ${conv.unread_count > 0 ? "text-gray-300 font-medium" : "text-gray-500"}`}>
