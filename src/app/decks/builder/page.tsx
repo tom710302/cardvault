@@ -194,7 +194,12 @@ function DeckBuilderInner() {
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {searching && <div className="text-center text-gray-500 text-sm py-8">搜尋中...</div>}
             {!searching && searchQuery && searchResults.length === 0 && (
-              <div className="text-center text-gray-600 text-sm py-8">找不到「{searchQuery}」</div>
+              <div className="text-center text-gray-600 text-sm py-8 space-y-2">
+                <p>找不到「{searchQuery}」</p>
+                {game === "寶可夢" && /[一-鿿]/.test(searchQuery) && (
+                  <p className="text-xs text-gray-700">試試英文名稱，例如：Pikachu、Charizard、Mewtwo</p>
+                )}
+              </div>
             )}
             {!searchQuery && (
               <div className="text-center text-gray-600 text-sm py-12 space-y-1">
