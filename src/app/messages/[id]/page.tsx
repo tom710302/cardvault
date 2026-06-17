@@ -23,6 +23,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -39,7 +40,10 @@ export default function ChatPage() {
         table: "messages",
         filter: `conversation_id=eq.${id}`,
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        setMessages(prev => {
+          if (prev.some(m => m.id === (payload.new as Message).id)) return prev;
+          return [...prev, payload.new as Message];
+        });
         scrollToBottom();
       })
       .subscribe();
@@ -63,15 +67,17 @@ export default function ChatPage() {
 
   async function send() {
     const content = input.trim();
-    if (!content || sending) return;
-    setInput("");
+    if (!content || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
+    setInput("");
     const res = await fetch(`/api/messages/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     });
     if (!res.ok) setInput(content);
+    sendingRef.current = false;
     setSending(false);
     inputRef.current?.focus();
   }
