@@ -149,6 +149,7 @@ export default function TradePage() {
                 今日提案 {quota.remaining} / {quota.limit} 次
               </div>
             )}
+            <Link href="/trade/history" className="btn-secondary text-sm flex items-center gap-2">交易紀錄</Link>
             <Link href="/trade/offers" className="btn-secondary text-sm flex items-center gap-2">提案信箱</Link>
           </div>
         ) : (

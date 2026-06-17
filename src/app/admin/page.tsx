@@ -13,7 +13,7 @@ interface User { id: string; username: string; display_name: string; role: strin
 interface Card { id: string; name: string; game: string; card_type: string; rarity: string | null; is_active: boolean; created_at: string; }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content" | "banners" | "reports">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "cards" | "stores" | "events" | "content" | "banners" | "reports" | "fraud_reports">("dashboard");
   const [storeSubTab, setStoreSubTab] = useState<"list" | "accounts">("list");
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -25,6 +25,8 @@ export default function AdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [fraudReports, setFraudReports] = useState<any[]>([]);
+  const [fraudReportsLoading, setFraudReportsLoading] = useState(false);
   const [showAddStore, setShowAddStore] = useState(false);
   const [storeAccountForm, setStoreAccountForm] = useState({ email: "", password: "", username: "", store_id: "" });
   const [storeAccountSubmitting, setStoreAccountSubmitting] = useState(false);
@@ -49,6 +51,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === "banners") fetchAdminBanners();
     if (tab === "reports") fetchReports();
+    if (tab === "fraud_reports") fetchFraudReports();
   }, [tab]);
 
   async function fetchReports() {
@@ -56,6 +59,23 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/reports");
     if (res.ok) { const { reports } = await res.json(); setReports(reports); }
     setReportsLoading(false);
+  }
+
+  async function fetchFraudReports() {
+    setFraudReportsLoading(true);
+    const res = await fetch("/api/trade/fraud-reports");
+    if (res.ok) { const { reports } = await res.json(); setFraudReports(reports); }
+    setFraudReportsLoading(false);
+  }
+
+  async function handleFraudReport(id: string, action: string) {
+    await fetch("/api/trade/fraud-reports", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    fetchFraudReports();
+    toast.success(action === "resolve" ? "已標記為已處理" : "已駁回回報");
   }
 
   async function handleReport(id: string, action: string, postId?: string) {
@@ -326,7 +346,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"], ["banners", "🖼️ Banner"], ["reports", "🚨 檢舉審核"]] as const).map(([id, label]) => (
+          {([["dashboard", "📊 儀表板"], ["posts", "📝 文章管理"], ["users", "👥 用戶管理"], ["cards", "🃏 卡牌管理"], ["stores", "🏪 店舖管理"], ["events", "🏆 賽事管理"], ["content", "✍️ 文案編輯"], ["banners", "🖼️ Banner"], ["reports", "🚨 檢舉審核"], ["fraud_reports", "🛡️ 詐騙回報"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === id ? "border-brand-500 text-brand-400" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -1014,6 +1034,66 @@ export default function AdminPage() {
                     {editingBannerId ? "更新 Banner" : "新增 Banner"}
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fraud Reports */}
+        {tab === "fraud_reports" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">🛡️ 詐騙回報</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  待審：{fraudReports.filter(r => r.status === "pending").length} 件
+                </p>
+              </div>
+              <button onClick={fetchFraudReports} className="btn-secondary text-sm flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" /> 刷新
+              </button>
+            </div>
+            {fraudReportsLoading ? (
+              <div className="space-y-2">{Array(5).fill(0).map((_, i) => <div key={i} className="glass rounded-xl h-16 shimmer" />)}</div>
+            ) : fraudReports.length === 0 ? (
+              <div className="glass rounded-xl p-10 text-center text-gray-500">目前沒有任何詐騙回報</div>
+            ) : (
+              <div className="space-y-2">
+                {fraudReports.map(r => (
+                  <div key={r.id} className={`glass rounded-xl p-4 flex items-center gap-4 ${r.status !== "pending" ? "opacity-50" : ""}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === "pending" ? "bg-red-900/30 text-red-400" : r.status === "reviewed" ? "bg-green-900/30 text-green-400" : "bg-gray-800 text-gray-500"}`}>
+                          {r.status === "pending" ? "待審" : r.status === "reviewed" ? "已處理" : "已駁回"}
+                        </span>
+                        <span className="text-xs text-gray-500">原因：{r.reason}</span>
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        <span className="text-gray-500">檢舉者：</span>@{r.reporter?.username}
+                        <span className="mx-2 text-gray-700">→</span>
+                        <span className="text-gray-500">被檢舉：</span>@{r.reported?.username}
+                      </div>
+                      {r.offer_id && (
+                        <Link href={`/trade/offers/${r.offer_id}`} target="_blank"
+                          className="text-xs text-brand-400 hover:text-brand-300 mt-1 block">
+                          查看相關提案 →
+                        </Link>
+                      )}
+                    </div>
+                    {r.status === "pending" && (
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => handleFraudReport(r.id, "resolve")}
+                          className="text-xs bg-green-900/30 text-green-400 hover:bg-green-900/50 px-3 py-1.5 rounded-lg transition-colors">
+                          已處理
+                        </button>
+                        <button onClick={() => handleFraudReport(r.id, "dismiss")}
+                          className="text-xs bg-gray-800 text-gray-400 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors">
+                          駁回
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
