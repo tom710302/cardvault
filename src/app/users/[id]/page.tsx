@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2 } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -45,6 +45,13 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [posts, setPosts] = useState<Post[]>([]);
   const [tab, setTab] = useState<"collection" | "posts" | "trade">("collection");
   const [tradeHaves, setTradeHaves] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [isMe, setIsMe] = useState(false);
@@ -56,6 +63,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       // Check if viewing own profile
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id === params.id) { router.replace("/my-page"); return; }
+      setCurrentUser(user ?? null);
+      if (user) {
+        fetch(`/api/users/${params.id}/block`).then(r => r.json()).then(d => setIsBlocked(d.blocked ?? false));
+      }
 
       const { data: p } = await supabase.from("profiles").select("*").eq("id", params.id).single();
       if (!p) { setLoading(false); return; }
@@ -81,6 +92,38 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
     }
     load();
   }, [params.id]);
+
+  async function toggleBlock() {
+    if (!currentUser) return;
+    setBlockLoading(true);
+    const method = isBlocked ? "DELETE" : "POST";
+    const res = await fetch(`/api/users/${params.id}/block`, { method });
+    if (res.ok) {
+      const data = await res.json();
+      setIsBlocked(data.blocked);
+      toast.success(data.blocked ? "已封鎖此用戶" : "已解除封鎖");
+    }
+    setBlockLoading(false);
+  }
+
+  async function submitReport() {
+    if (!reportReason || reporting) return;
+    setReporting(true);
+    const res = await fetch(`/api/users/${params.id}/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reportReason }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setReportDone(true);
+      setShowReport(false);
+      toast.success("檢舉已送出，感謝你的回報！");
+    } else {
+      toast.error(data.error ?? "送出失敗");
+    }
+    setReporting(false);
+  }
 
   if (loading) return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
@@ -158,7 +201,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link href={`/community?search=${encodeURIComponent(profile.username)}`}
             className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
             <MessageSquare className="w-4 h-4" /> 查看 TA 的文章
@@ -170,6 +213,36 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
             <Share2 className="w-4 h-4" /> 分享
           </button>
         </div>
+
+        {/* Block / Report (logged-in users only) */}
+        {currentUser && (
+          <div className="flex gap-2">
+            <button
+              onClick={toggleBlock}
+              disabled={blockLoading}
+              className={`flex-1 text-xs py-2 rounded-xl border transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                isBlocked
+                  ? "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                  : "bg-orange-900/10 border-orange-800/20 text-orange-400 hover:bg-orange-900/20"
+              }`}
+            >
+              <ShieldOff className="w-3.5 h-3.5" />
+              {isBlocked ? "已封鎖（點擊解除）" : "封鎖此用戶"}
+            </button>
+            {!reportDone ? (
+              <button
+                onClick={() => setShowReport(true)}
+                className="flex-1 text-xs py-2 rounded-xl border bg-red-900/10 border-red-800/20 text-red-400 hover:bg-red-900/20 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Flag className="w-3.5 h-3.5" /> 檢舉用戶
+              </button>
+            ) : (
+              <div className="flex-1 text-xs py-2 rounded-xl border bg-gray-800/20 border-gray-700/20 text-gray-500 flex items-center justify-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> 已提交檢舉
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -311,6 +384,53 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         )
       )}
       <div className="h-16" />
+
+      {/* Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="glass rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <Flag className="w-4 h-4 text-red-400" /> 檢舉用戶
+              </h3>
+              <button onClick={() => setShowReport(false)} className="text-gray-500 hover:text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400">請選擇檢舉原因，我們會盡快處理。</p>
+
+            <div className="space-y-2">
+              {["詐騙/欺騙交易", "騷擾或霸凌", "冒充他人", "散播不實資訊", "其他"].map(r => (
+                <label key={r} className="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:bg-white/5 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="report-reason"
+                    value={r}
+                    checked={reportReason === r}
+                    onChange={() => setReportReason(r)}
+                    className="accent-red-500"
+                  />
+                  <span className="text-sm text-gray-300">{r}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowReport(false)} className="flex-1 btn-secondary text-sm py-2">
+                取消
+              </button>
+              <button
+                onClick={submitReport}
+                disabled={!reportReason || reporting}
+                className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white text-sm py-2 rounded-xl font-medium transition-colors"
+              >
+                {reporting ? "送出中..." : "送出檢舉"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
