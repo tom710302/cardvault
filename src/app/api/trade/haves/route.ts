@@ -31,10 +31,26 @@ export async function POST(request: NextRequest) {
   ]);
   const myName = myProfile?.display_name || myProfile?.username || "某位收藏家";
   const matchedUserIds = Array.from(new Set((matchedWants ?? []).map((w: any) => w.user_id)));
-  for (const uid of matchedUserIds) {
-    const email = await getUserEmail(admin, uid);
-    if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
-  }
+
+  await Promise.all([
+    // Email 通知
+    ...matchedUserIds.map(async (uid) => {
+      const email = await getUserEmail(admin, uid);
+      if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
+    }),
+    // In-app 通知
+    matchedUserIds.length > 0
+      ? admin.from("notifications").insert(
+          matchedUserIds.map(uid => ({
+            user_id: uid,
+            type: "trade_match",
+            title: `有人上架了你想要的「${card_name}」`,
+            message: `${myName} 新增了可換的 ${card_name}，快去看看！`,
+            link: "/trade/matches",
+          }))
+        )
+      : Promise.resolve(),
+  ]);
 
   return NextResponse.json({ have: data }, { status: 201 });
 }

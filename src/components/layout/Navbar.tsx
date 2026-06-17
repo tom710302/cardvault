@@ -182,7 +182,7 @@ export function Navbar() {
                     <Link key={n.id} href={n.link ?? "#"}
                       onClick={() => { setNotifOpen(false); if (!n.is_read) fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: n.id }) }); }}
                       className={`flex gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${!n.is_read ? "bg-brand-900/10" : ""}`}>
-                      <span className="text-lg shrink-0">{{ comment: "💬", reply: "↩️", vote: "▲", system: "📢" }[n.type as string] ?? "🔔"}</span>
+                      <span className="text-lg shrink-0">{{ comment: "💬", reply: "↩️", vote: "▲", system: "📢", trade_match: "🔄" }[n.type as string] ?? "🔔"}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-200">{n.title}</p>
                         {n.message && <p className="text-xs text-gray-500 truncate mt-0.5">{n.message}</p>}
