@@ -144,6 +144,21 @@ export default function OfferDetailPage() {
     setActing(false);
   }
 
+  async function confirmTrade() {
+    setActing(true);
+    const res = await fetch(`/api/trade/offers/${params.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "confirm" }),
+    });
+    if (res.ok) {
+      await loadOffer();
+    } else {
+      toast.error("操作失敗，請重試");
+    }
+    setActing(false);
+  }
+
   async function submitReview(e: React.FormEvent) {
     e.preventDefault();
     if (!rating) return;
@@ -320,10 +335,44 @@ export default function OfferDetailPage() {
       )}
 
       {offer.status === "accepted" && (
-        <button onClick={() => updateStatus("completed")} disabled={acting}
-          className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
-          <CheckCircle className="w-4 h-4" /> 確認換卡完成
-        </button>
+        <div className="glass rounded-xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400" /> 確認交易完成
+          </h2>
+          <p className="text-xs text-gray-400">雙方都確認收到卡牌後，交易才會標記為完成。</p>
+          <div className="space-y-2">
+            {([
+              { userId: offer.from_user_id, profile: offer.from_profile, confirmed: offer.from_confirmed },
+              { userId: offer.to_user_id,   profile: offer.to_profile,   confirmed: offer.to_confirmed },
+            ] as const).map(({ userId, profile, confirmed }) => (
+              <div key={userId} className={`flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm ${
+                confirmed
+                  ? "bg-green-900/10 border-green-800/30"
+                  : "bg-gray-900/20 border-gray-700/20"
+              }`}>
+                <span className="text-gray-300">
+                  {profile?.display_name ?? profile?.username ?? "用戶"}
+                  {userId === user?.id && <span className="text-gray-500 text-xs ml-1">（你）</span>}
+                </span>
+                {confirmed ? (
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" /> 已確認
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> 尚未確認
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+          {!(offer.from_user_id === user?.id ? offer.from_confirmed : offer.to_confirmed) && (
+            <button onClick={confirmTrade} disabled={acting}
+              className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+              <CheckCircle className="w-4 h-4" /> 我已收到對方的卡牌
+            </button>
+          )}
+        </div>
       )}
 
       {/* Review form */}
