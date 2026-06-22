@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, Package, Bookmark, ArrowLeftRight, Send } from "lucide-react";
+import { Search, Package, Bookmark, ArrowLeftRight, ArrowLeft, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
@@ -100,11 +100,14 @@ function TradeSearchContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-8 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Search className="w-6 h-6 text-brand-400" /> 換卡搜尋
-        </h1>
-        <p className="text-gray-400 text-sm mt-1">輸入卡名，找出社群中有這張卡或在找這張卡的人</p>
+      <div className="flex items-center gap-3">
+        <Link href="/trade" className="text-gray-400 hover:text-gray-200 shrink-0"><ArrowLeft className="w-5 h-5" /></Link>
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Search className="w-6 h-6 text-brand-400" /> 換卡搜尋
+          </h1>
+          <p className="text-gray-400 text-sm mt-0.5">輸入卡名，找出社群中有這張卡或在找這張卡的人</p>
+        </div>
       </div>
 
       {/* Search bar */}

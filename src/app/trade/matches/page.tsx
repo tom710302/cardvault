@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Star, ChevronRight, Plus, Send, X, Lock, TrendingUp } from "lucide-react";
+import { ArrowLeftRight, ArrowLeft, Star, ChevronRight, Plus, Send, X, Lock, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 
@@ -171,7 +171,7 @@ export default function MatchesPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeftRight className="w-5 h-5" /></Link>
+          <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeft className="w-5 h-5" /></Link>
           <div>
             <h1 className="text-2xl font-bold text-white">配對結果</h1>
             <p className="text-gray-400 text-sm mt-0.5">根據你的清單自動配對</p>

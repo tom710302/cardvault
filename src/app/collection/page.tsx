@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2, DollarSign } from "lucide-react";
+import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2, DollarSign, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -37,6 +38,7 @@ interface CollectionItem {
 interface Card { id: string; name: string; name_en: string | null; game: string; set_name: string | null; rarity: string | null; }
 
 export default function CollectionPage() {
+  const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<CollectionItem[]>([]);
@@ -236,6 +238,9 @@ export default function CollectionPage() {
 
       <div className="flex items-start justify-between gap-4">
         <div>
+          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-100 mb-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <h1 className="text-3xl font-bold text-white">我的收藏庫</h1>
           <p className="text-gray-400 text-sm mt-1">管理、追蹤你的所有實體卡牌</p>
         </div>

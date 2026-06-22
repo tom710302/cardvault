@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Trash2, X, Package, Calendar, Store, Edit2, Save, AlertCircle } from "lucide-react";
+import { Plus, Trash2, X, Package, Calendar, Store, Edit2, Save, AlertCircle, ArrowLeft } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -176,6 +176,7 @@ export default function MyStorePage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
+          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-100 mb-2 transition-colors"><ArrowLeft className="w-4 h-4" /></button>
           <div className="flex items-center gap-2 mb-1">
             <Store className="w-6 h-6 text-brand-400" />
             <h1 className="text-2xl font-bold text-white">店舖後台</h1>

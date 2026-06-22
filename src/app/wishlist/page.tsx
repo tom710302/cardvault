@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Trash2, Search, X } from "lucide-react";
+import { Plus, Trash2, Search, X, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface WishItem {
@@ -14,6 +15,7 @@ interface WishItem {
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 
 export default function WishlistPage() {
+  const router = useRouter();
   const [items, setItems] = useState<WishItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -123,6 +125,7 @@ export default function WishlistPage() {
 
       <div className="flex items-center justify-between gap-4">
         <div>
+          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-100 mb-2 transition-colors"><ArrowLeft className="w-4 h-4" /></button>
           <h1 className="text-3xl font-bold text-white">想求清單</h1>
           <p className="text-gray-400 text-sm mt-1">追蹤你想要的卡牌，設定目標價格</p>
         </div>

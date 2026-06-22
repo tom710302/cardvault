@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Eye, Layers, Search } from "lucide-react";
+import { Plus, Eye, Layers, Search, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const GAMES = ["全部", "寶可夢", "MTG", "遊戲王", "NBA", "MLB"];
 
 export default function DecksPage() {
+  const router = useRouter();
   const [decks, setDecks] = useState<any[]>([]);
   const [myDecks, setMyDecks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,7 @@ export default function DecksPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
+          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-100 mb-2 transition-colors"><ArrowLeft className="w-4 h-4" /></button>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Layers className="w-8 h-8 text-brand-400" /> 卡組列表
           </h1>

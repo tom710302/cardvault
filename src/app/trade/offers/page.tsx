@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, ChevronRight, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, CheckCircle, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -36,7 +36,7 @@ export default function OffersPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeftRight className="w-5 h-5" /></Link>
+        <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeft className="w-5 h-5" /></Link>
         <h1 className="text-2xl font-bold text-white">換卡提案</h1>
       </div>
 

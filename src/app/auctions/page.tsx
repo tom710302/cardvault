@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Plus, Clock, TrendingUp, Gavel, CheckCircle, XCircle } from "lucide-react";
+import { Search, Plus, Clock, TrendingUp, Gavel, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -42,6 +43,7 @@ function Countdown({ endAt }: { endAt: string }) {
 }
 
 export default function AuctionsPage() {
+  const router = useRouter();
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -70,6 +72,7 @@ export default function AuctionsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
+          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-100 mb-2 transition-colors"><ArrowLeft className="w-4 h-4" /></button>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
             <Gavel className="w-7 h-7 text-brand-400" /> 競標系統
           </h1>

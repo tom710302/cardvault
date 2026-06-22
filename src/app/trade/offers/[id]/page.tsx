@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeftRight, CheckCircle, XCircle, Clock, Package,
+  ArrowLeft, ArrowLeftRight, CheckCircle, XCircle, Clock, Package,
   MessageSquare, ShieldAlert, ShieldOff, Shield, Send, ThumbsUp, ThumbsDown, Minus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -252,7 +252,7 @@ export default function OfferDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/trade/offers" className="text-gray-400 hover:text-gray-200">
-          <ArrowLeftRight className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-white">換卡提案詳情</h1>

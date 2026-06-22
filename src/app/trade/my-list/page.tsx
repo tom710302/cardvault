@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ArrowLeftRight } from "lucide-react";
+import { Plus, Trash2, ArrowLeftRight, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
@@ -120,7 +120,7 @@ export default function MyListPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeftRight className="w-5 h-5" /></Link>
+        <Link href="/trade" className="text-gray-400 hover:text-gray-200"><ArrowLeft className="w-5 h-5" /></Link>
         <div>
           <h1 className="text-2xl font-bold text-white">管理清單</h1>
           <p className="text-gray-400 text-sm mt-0.5">填寫後系統會自動幫你尋找配對</p>
