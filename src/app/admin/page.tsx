@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw, ImageIcon } from "lucide-react";
+import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw, ImageIcon, Download } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -48,10 +48,28 @@ export default function AdminPage() {
   useScrollLock(showAddStore || showAddCard || showBannerForm);
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [bannerForm, setBannerForm] = useState({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: 0 });
+  const [exporting, setExporting] = useState(false);
   const toast = useToast();
   const confirm = useConfirm();
 
   const supabase = createClient();
+
+  async function exportCollections() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/admin/collections");
+      if (!res.ok) { toast.error("匯出失敗"); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cardreasch-collections-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     if (tab === "banners") fetchAdminBanners();
@@ -379,6 +397,15 @@ export default function AdminPage() {
                   <div className="text-3xl font-bold text-white">{value.toLocaleString()}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Export */}
+            <div className="flex justify-end">
+              <button onClick={exportCollections} disabled={exporting}
+                className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50">
+                <Download className="w-4 h-4" />
+                {exporting ? "匯出中..." : "匯出全站收藏 CSV"}
+              </button>
             </div>
 
             <div className="glass rounded-xl p-5">
