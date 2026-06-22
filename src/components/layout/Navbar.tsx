@@ -10,6 +10,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const navLinks = [
   { href: "/community", label: "社群討論" },
+  { href: "/feed", label: "動態" },
   { href: "/search", label: "資料查詢" },
   { href: "/trade", label: "換卡系統" },
   { href: "/decks", label: "卡組" },
