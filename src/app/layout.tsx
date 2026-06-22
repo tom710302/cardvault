@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -52,8 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ToastProvider>
           <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <main className="min-h-screen pb-16 md:pb-0">{children}</main>
+          <div className="hidden md:block"><Footer /></div>
+          <BottomNav />
         </ToastProvider>
       </body>
     </html>

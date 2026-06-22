@@ -149,7 +149,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col max-w-2xl mx-auto" style={{ height: "calc(100vh - 4rem)" }}>
+    <div className="flex flex-col max-w-2xl mx-auto" style={{ height: "calc(100dvh - 4rem)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       {/* Header */}
       <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0">
         <Link href="/messages" className="text-gray-400 hover:text-white transition-colors">

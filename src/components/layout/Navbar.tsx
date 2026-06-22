@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search, User, Menu, X, Layers, LogOut, Shield, BookmarkPlus, MessageSquare } from "lucide-react";
+import { Bell, Search, User, Layers, LogOut, Shield, BookmarkPlus, MessageSquare } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -19,7 +19,7 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // kept for tablet 768-1023px edge case
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<{ username: string; role: string } | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -294,32 +294,8 @@ export function Navbar() {
             </Link>
           )}
 
-          <button className="md:hidden p-2 text-gray-400 hover:text-gray-100"
-            onClick={() => setMobileOpen(v => !v)}>
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-white/10 bg-gray-950 px-4 py-3 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-              className={cn("px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                pathname.startsWith(link.href) && (link.href !== "/" || pathname === "/") ? "bg-brand-600/20 text-brand-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
-              )}>
-              {link.label}
-            </Link>
-          ))}
-          {!user && (
-            <Link href="/auth/login" onClick={() => setMobileOpen(false)}
-              className="mt-2 flex items-center justify-center gap-2 bg-brand-600 text-white text-sm font-medium px-3 py-2.5 rounded-lg">
-              <User className="w-4 h-4" /> 登入 / 註冊
-            </Link>
-          )}
-        </div>
-      )}
     </header>
   );
 }
