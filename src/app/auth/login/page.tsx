@@ -49,7 +49,7 @@ export default function LoginPage() {
             <span className="text-2xl font-bold text-white">Card<span className="text-brand-400">Search</span></span>
           </Link>
           <h1 className="text-2xl font-bold text-white">{isSignUp ? "建立帳號" : "歡迎回來"}</h1>
-          <p className="text-gray-400 text-sm mt-1">{isSignUp ? "加入台灣最大卡牌收藏社群" : "登入你的 CardSearch 帳號"}</p>
+          <p className="text-gray-400 text-sm mt-1">{isSignUp ? "加入台灣最大卡牌收藏社群" : "登入你的 Cardreasch 帳號"}</p>
         </div>
 
         <div className="glass rounded-2xl p-6 space-y-4">

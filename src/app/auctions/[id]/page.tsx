@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, Gavel, Users, TrendingUp, CheckCircle, Crown, AlertCi
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface Auction {
   id: string; title: string; description: string | null; image_url: string | null;
@@ -50,6 +51,7 @@ export default function AuctionDetailPage() {
   const router = useRouter();
   const supabase = createClient();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -97,7 +99,7 @@ export default function AuctionDetailPage() {
   }
 
   async function endAuction() {
-    if (!confirm("確定要結標嗎？結標後無法再出價。")) return;
+    if (!await confirm({ title: "確定要結標嗎？", message: "結標後無法再出價。", confirmLabel: "結標", danger: false })) return;
     setEnding(true);
     const res = await fetch(`/api/auctions/${id}`, {
       method: "PATCH",

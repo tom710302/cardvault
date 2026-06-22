@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, X, Package, Calendar, Store, Edit2, Save, AlertCircle, ArrowLeft } from "lucide-react";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,7 @@ export default function MyStorePage() {
   const supabase = createClient();
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     async function load() {
@@ -115,7 +117,7 @@ export default function MyStorePage() {
   }
 
   async function deleteProduct(id: string) {
-    if (!confirm("確定下架此商品？")) return;
+    if (!await confirm({ title: "確定下架此商品？", message: "商品將從店面移除。" })) return;
     await fetch("/api/my-store/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchProducts();
   }
@@ -139,7 +141,7 @@ export default function MyStorePage() {
   }
 
   async function deleteEvent(id: string) {
-    if (!confirm("確定下架此活動？")) return;
+    if (!await confirm({ title: "確定下架此活動？", message: "活動將從店面移除。" })) return;
     await fetch("/api/my-store/events", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchEvents();
   }

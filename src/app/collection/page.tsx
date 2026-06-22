@@ -10,6 +10,7 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 const CollectionCharts = dynamic(() => import("@/components/ui/CollectionCharts").then(m => m.CollectionCharts), { ssr: false });
 
@@ -58,6 +59,7 @@ export default function CollectionPage() {
   const [pricedCount, setPricedCount] = useState(0);
   const supabase = createClient();
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -115,7 +117,7 @@ export default function CollectionPage() {
   }
 
   async function removeFromCollection(id: string) {
-    if (!confirm("確定移除？")) return;
+    if (!await confirm({ title: "確定移除？", message: "此卡牌將從收藏庫中刪除。" })) return;
     await fetch("/api/collections", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchCollection();
   }

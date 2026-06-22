@@ -123,7 +123,7 @@ export function Navbar() {
             <Layers className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-lg tracking-tight text-white">
-            Card<span className="text-brand-400">Search</span>
+            Card<span className="text-brand-400">reasch</span>
           </span>
         </Link>
 

@@ -5,10 +5,11 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { PushPrompt } from "@/components/PushPrompt";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ConfirmProvider } from "@/components/ui/ConfirmModal";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cardvault-beta.vercel.app";
-const siteName = "CardSearch";
-const defaultTitle = "CardSearch — 實體卡牌收藏交流平台";
+const siteName = "Cardreasch";
+const defaultTitle = "Cardreasch — 實體卡牌收藏交流平台";
 const defaultDescription = "TCG 與球員卡收藏家的社群交流、價格參考、收藏展示平台";
 
 export const metadata: Metadata = {
@@ -53,11 +54,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ToastProvider>
+        <ConfirmProvider>
           <Navbar />
           <main className="min-h-screen pb-16 md:pb-0">{children}</main>
           <div className="hidden md:block"><Footer /></div>
           <BottomNav />
           <PushPrompt />
+        </ConfirmProvider>
         </ToastProvider>
       </body>
     </html>

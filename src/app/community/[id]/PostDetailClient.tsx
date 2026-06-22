@@ -7,6 +7,7 @@ import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 
@@ -69,6 +70,7 @@ export default function PostDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const supabase = createClient();
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -189,7 +191,7 @@ export default function PostDetailClient({ id }: { id: string }) {
   }
 
   async function deleteComment(commentId: string) {
-    if (!confirm("確定刪除？")) return;
+    if (!await confirm({ title: "確定刪除留言？", message: "刪除後無法復原。" })) return;
     await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: commentId }) });
     fetchComments();
   }

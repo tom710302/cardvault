@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw, ImageIcon } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 
@@ -47,6 +48,7 @@ export default function AdminPage() {
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [bannerForm, setBannerForm] = useState({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: 0 });
   const toast = useToast();
+  const confirm = useConfirm();
 
   const supabase = createClient();
 
@@ -181,7 +183,7 @@ export default function AdminPage() {
   }
 
   async function deleteStore(id: string) {
-    if (!confirm("確定刪除此店舖？")) return;
+    if (!await confirm({ title: "確定刪除此店舖？", message: "刪除後無法復原。" })) return;
     await supabase.from("stores").delete().eq("id", id);
     fetchStores();
   }
@@ -211,7 +213,7 @@ export default function AdminPage() {
   }
 
   async function revokeStoreAccount(id: string) {
-    if (!confirm("確定撤銷此店主權限？")) return;
+    if (!await confirm({ title: "確定撤銷此店主權限？", message: "該帳號將降為一般用戶。" })) return;
     await supabase.from("profiles").update({ role: "user", store_id: null }).eq("id", id);
     fetchStoreAccounts();
   }
@@ -224,7 +226,7 @@ export default function AdminPage() {
   }
 
   async function deletePost(id: string) {
-    if (!confirm("確定刪除這篇文章？")) return;
+    if (!await confirm({ title: "確定刪除這篇文章？", message: "文章將被標記為已刪除。" })) return;
     await supabase.from("posts").update({ is_deleted: true }).eq("id", id);
     fetchPosts();
   }
@@ -244,7 +246,7 @@ export default function AdminPage() {
   }
 
   async function rejectEvent(id: string) {
-    if (!confirm("確定拒絕並刪除此賽事？")) return;
+    if (!await confirm({ title: "確定拒絕並刪除此賽事？", message: "刪除後無法復原。" })) return;
     await supabase.from("events").delete().eq("id", id);
     fetchEvents(eventFilter);
   }
@@ -306,7 +308,7 @@ export default function AdminPage() {
   }
 
   async function deleteBanner(id: string) {
-    if (!confirm("確定刪除這個 Banner？")) return;
+    if (!await confirm({ title: "確定刪除這個 Banner？", message: "刪除後無法復原。" })) return;
     await fetch("/api/banners", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchAdminBanners();
   }
@@ -338,7 +340,7 @@ export default function AdminPage() {
             <Shield className="w-4 h-4 text-white" />
           </div>
           <div>
-            <span className="font-bold text-white">CardSearch 後台管理</span>
+            <span className="font-bold text-white">Cardreasch 後台管理</span>
             <span className="ml-2 text-xs text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">Admin</span>
           </div>
         </div>

@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const admin = createAdminClient();
   const { data } = await admin.from("decks").select("name, game, description").eq("id", params.id).single();
   return {
-    title: data ? `${data.name} — ${data.game} 卡組 | CardSearch` : "卡組",
+    title: data ? `${data.name} — ${data.game} 卡組 | Cardreasch` : "卡組",
     description: data?.description ?? `${data?.game} 卡組構築分享`,
   };
 }
