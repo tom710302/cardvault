@@ -177,7 +177,19 @@ export function Navbar() {
                     ))}
                   </div>
                 )}
-                {searchResults.cards?.length === 0 && searchResults.posts?.length === 0 && (
+                {searchResults.trades?.length > 0 && (
+                  <div className="p-2 border-t border-white/10">
+                    <div className="text-xs text-gray-500 px-2 py-1 font-medium">換卡市場</div>
+                    {searchResults.trades.map((name: string) => (
+                      <Link key={name} href={`/trade/search?q=${encodeURIComponent(name)}`} onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                        <span className="text-lg">🔄</span>
+                        <div className="text-sm text-gray-200 truncate">{name}</div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {searchResults.cards?.length === 0 && searchResults.posts?.length === 0 && searchResults.trades?.length === 0 && (
                   <div className="p-4 text-center text-sm text-gray-500">沒有找到相關結果</div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, getUserEmail, matchFoundEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
   const admin = createAdminClient();
@@ -32,25 +33,19 @@ export async function POST(request: NextRequest) {
   const myName = myProfile?.display_name || myProfile?.username || "某位收藏家";
   const matchedUserIds = Array.from(new Set((matchedWants ?? []).map((w: any) => w.user_id)));
 
-  await Promise.all([
-    // Email 通知
-    ...matchedUserIds.map(async (uid) => {
+  await Promise.all(
+    matchedUserIds.map(async (uid) => {
+      await notifyUser({
+        userId: uid,
+        type: "trade_match",
+        title: `有人上架了你想要的「${card_name}」`,
+        body: `${myName} 新增了可換的 ${card_name}，快去看看！`,
+        link: "/trade/matches",
+      });
       const email = await getUserEmail(admin, uid);
       if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
-    }),
-    // In-app 通知
-    matchedUserIds.length > 0
-      ? admin.from("notifications").insert(
-          matchedUserIds.map(uid => ({
-            user_id: uid,
-            type: "trade_match",
-            title: `有人上架了你想要的「${card_name}」`,
-            message: `${myName} 新增了可換的 ${card_name}，快去看看！`,
-            link: "/trade/matches",
-          }))
-        )
-      : Promise.resolve(),
-  ]);
+    })
+  );
 
   return NextResponse.json({ have: data }, { status: 201 });
 }

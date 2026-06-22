@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Plus, Zap, Users, ChevronRight, Star, Pencil, Send, Lock, X, Check } from "lucide-react";
+import { ArrowLeftRight, Plus, Zap, Users, ChevronRight, Star, Pencil, Send, Lock, X, Check, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
@@ -149,6 +149,7 @@ export default function TradePage() {
                 今日提案 {quota.remaining} / {quota.limit} 次
               </div>
             )}
+            <Link href="/trade/search" className="btn-secondary text-sm flex items-center gap-2"><Search className="w-4 h-4" />搜尋換卡</Link>
             <Link href="/trade/history" className="btn-secondary text-sm flex items-center gap-2">交易紀錄</Link>
             <Link href="/trade/offers" className="btn-secondary text-sm flex items-center gap-2">提案信箱</Link>
           </div>
