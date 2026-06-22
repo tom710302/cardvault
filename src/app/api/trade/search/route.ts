@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
   const game = searchParams.get("game") ?? "";
+  const condition = searchParams.get("condition") ?? "";
 
   if (!q || q.length < 1) return NextResponse.json({ haves: [], wants: [] });
 
@@ -29,6 +30,11 @@ export async function GET(request: NextRequest) {
   if (game) {
     havesQuery = havesQuery.eq("card_game", game);
     wantsQuery = wantsQuery.eq("card_game", game);
+  }
+
+  if (condition) {
+    havesQuery = havesQuery.eq("condition", condition);
+    wantsQuery = wantsQuery.eq("condition_min", condition);
   }
 
   const [{ data: haves }, { data: wants }] = await Promise.all([havesQuery, wantsQuery]);

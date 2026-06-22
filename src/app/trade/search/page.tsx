@@ -10,9 +10,14 @@ import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 
 const GAMES = ["全部", "寶可夢", "MTG", "遊戲王", "NBA", "MLB"];
+const CONDITIONS = ["全部", "M", "NM", "LP", "MP", "HP"];
 const gameEmoji: Record<string, string> = { MTG: "⚔️", 寶可夢: "⚡", 遊戲王: "🌀", NBA: "🏀", MLB: "⚾" };
 const conditionColor: Record<string, string> = {
   M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400",
+};
+const conditionBg: Record<string, string> = {
+  M: "bg-yellow-600 text-white", NM: "bg-green-600 text-white",
+  LP: "bg-blue-600 text-white", MP: "bg-orange-600 text-white", HP: "bg-red-600 text-white",
 };
 
 interface TradeItem {
@@ -30,6 +35,7 @@ function TradeSearchContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [game, setGame] = useState("全部");
+  const [condition, setCondition] = useState("全部");
   const [tab, setTab] = useState<"haves" | "wants">("haves");
   const [haves, setHaves] = useState<TradeItem[]>([]);
   const [wants, setWants] = useState<TradeItem[]>([]);
@@ -47,14 +53,15 @@ function TradeSearchContent() {
   // Initial search from URL param
   useEffect(() => {
     const q = searchParams.get("q");
-    if (q) search(q, "全部");
+    if (q) search(q, "全部", "全部");
   }, []);
 
-  const search = useCallback(async (q: string, g: string) => {
+  const search = useCallback(async (q: string, g: string, c: string) => {
     if (!q.trim()) { setHaves([]); setWants([]); return; }
     setLoading(true);
     const params = new URLSearchParams({ q });
     if (g !== "全部") params.set("game", g);
+    if (c !== "全部") params.set("condition", c);
     const res = await fetch(`/api/trade/search?${params}`);
     if (res.ok) {
       const data = await res.json();
@@ -67,13 +74,19 @@ function TradeSearchContent() {
   function handleQueryChange(q: string) {
     setQuery(q);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(q, game), 300);
+    debounceRef.current = setTimeout(() => search(q, game, condition), 300);
   }
 
   function handleGameChange(g: string) {
     setGame(g);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(query, g), 100);
+    debounceRef.current = setTimeout(() => search(query, g, condition), 100);
+  }
+
+  function handleConditionChange(c: string) {
+    setCondition(c);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => search(query, game, c), 100);
   }
 
   async function sendOffer(toUserId: string, cardName: string) {
@@ -128,15 +141,35 @@ function TradeSearchContent() {
         </div>
 
         {/* Game filter */}
-        <div className="flex gap-2 flex-wrap">
-          {GAMES.map(g => (
-            <button key={g} onClick={() => handleGameChange(g)}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                game === g ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
-              )}>
-              {gameEmoji[g] ?? ""} {g}
-            </button>
-          ))}
+        <div>
+          <p className="text-[10px] text-gray-600 mb-1.5 font-medium uppercase tracking-wide">遊戲種類</p>
+          <div className="flex gap-2 flex-wrap">
+            {GAMES.map(g => (
+              <button key={g} onClick={() => handleGameChange(g)}
+                className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  game === g ? "bg-brand-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                )}>
+                {gameEmoji[g] ?? ""} {g}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Condition filter */}
+        <div>
+          <p className="text-[10px] text-gray-600 mb-1.5 font-medium uppercase tracking-wide">品相</p>
+          <div className="flex gap-2 flex-wrap">
+            {CONDITIONS.map(c => (
+              <button key={c} onClick={() => handleConditionChange(c)}
+                className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-colors",
+                  condition === c
+                    ? (c === "全部" ? "bg-brand-600 text-white" : conditionBg[c])
+                    : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                )}>
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
