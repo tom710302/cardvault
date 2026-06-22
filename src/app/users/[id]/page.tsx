@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail, ThumbsUp, ThumbsDown, Minus, UserPlus, UserCheck } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 
@@ -55,6 +56,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewStats, setReviewStats] = useState({ positive: 0, neutral: 0, negative: 0, total: 0 });
   const [showReport, setShowReport] = useState(false);
+  useScrollLock(showReport);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
   const [reportDone, setReportDone] = useState(false);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, X, Package, Calendar, Store, Edit2, Save, AlertCircle, ArrowLeft } from "lucide-react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,6 +42,7 @@ export default function MyStorePage() {
 
   // Event form
   const [showAddEvent, setShowAddEvent] = useState(false);
+  useScrollLock(showAddProduct || !!editProduct || showAddEvent);
   const [eventForm, setEventForm] = useState({ title: "", description: "", event_date: "", end_date: "", location: "", registration_url: "", registration_info: "", image_url: "", image_urls: [] as string[] });
   const [eventSubmitting, setEventSubmitting] = useState(false);
 

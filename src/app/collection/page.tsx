@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const CollectionCharts = dynamic(() => import("@/components/ui/CollectionCharts").then(m => m.CollectionCharts), { ssr: false });
 
@@ -66,10 +67,7 @@ export default function CollectionPage() {
     });
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = showAdd ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [showAdd]);
+  useScrollLock(showAdd);
 
   const fetchCollection = useCallback(async () => {
     setLoading(true);

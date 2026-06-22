@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import Link from "next/link";
 import {
   PenLine, MessageSquare, Eye, TrendingUp, Flame, Clock, Award,
@@ -83,6 +84,7 @@ function CommunityContent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
+  useScrollLock(showNewPost);
   const [newPost, setNewPost] = useState({ title: "", content: "", board: "general", post_type: "discussion" });
   const [postImages, setPostImages] = useState<string[]>([]);
   const [postTags, setPostTags] = useState<string[]>([]);

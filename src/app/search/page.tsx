@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import Link from "next/link";
 import {
   Search, MapPin, Phone, Clock, Globe, CheckCircle, Navigation,
@@ -69,6 +70,7 @@ function SearchContent() {
   const [showPast, setShowPast] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
+  useScrollLock(showSubmit);
   const [form, setForm] = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);

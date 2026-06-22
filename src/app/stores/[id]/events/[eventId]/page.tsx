@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, ExternalLink, Clock, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface StoreEvent {
   id: string; title: string; description: string | null;
@@ -23,6 +24,7 @@ export default function EventDetailPage({ params }: { params: { id: string; even
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  useScrollLock(lightbox !== null);
   const supabase = createClient();
 
   useEffect(() => {

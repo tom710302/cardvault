@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X, Ima
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 
@@ -62,6 +63,7 @@ export default function PostDetailClient({ id }: { id: string }) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  useScrollLock(showReport);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
   const router = useRouter();

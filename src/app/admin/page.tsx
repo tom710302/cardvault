@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Users, FileText, Database, Package, TrendingUp, Shield, Trash2, CheckCircle, Plus, X, MapPin, Navigation, Calendar, RefreshCw, ImageIcon } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 
@@ -42,6 +43,7 @@ export default function AdminPage() {
   // Banner management state
   const [adminBanners, setAdminBanners] = useState<any[]>([]);
   const [showBannerForm, setShowBannerForm] = useState(false);
+  useScrollLock(showAddStore || showAddCard || showBannerForm);
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [bannerForm, setBannerForm] = useState({ badge: "", headline: "", accent: "", description: "", cta1_label: "了解更多", cta1_href: "/", cta2_label: "", cta2_href: "", theme: "platform", art_type: "platform", is_active: true, sort_order: 0 });
   const toast = useToast();

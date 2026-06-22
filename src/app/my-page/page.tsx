@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import Link from "next/link";
 import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight, Search, List, BarChart3, TrendingUp, Bookmark, MessageSquare } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
@@ -48,6 +49,7 @@ export default function MyPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
+  useScrollLock(showAddCard || showEditProfile || showAvatarLightbox);
   const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const avatarLongPressedRef = useRef(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);

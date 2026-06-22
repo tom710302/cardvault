@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, ArrowLeft, Star, ChevronRight, Plus, Send, X, Lock, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 
 const conditionColor: Record<string, string> = { M: "text-yellow-400", NM: "text-green-400", LP: "text-blue-400", MP: "text-orange-400", HP: "text-red-400" };
@@ -143,6 +144,7 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [quota, setQuota] = useState<DailyQuota>({ tier: "新手", limit: 3, used_today: 0, remaining: 3 });
   const [activeOffer, setActiveOffer] = useState<any>(null);
+  useScrollLock(!!activeOffer);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const supabase = createClient();
 

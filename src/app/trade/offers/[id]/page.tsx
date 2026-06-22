@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { useToast } from "@/components/ui/Toast";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending:   { label: "待回覆", color: "text-yellow-400 bg-yellow-900/20 border-yellow-700/30" },
@@ -71,6 +72,7 @@ export default function OfferDetailPage() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [showFraudReport, setShowFraudReport] = useState(false);
+  useScrollLock(showFraudReport);
   const [fraudReason, setFraudReason] = useState("");
   const [fraudLoading, setFraudLoading] = useState(false);
   const [fraudDone, setFraudDone] = useState(false);

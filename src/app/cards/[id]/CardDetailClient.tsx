@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const PriceChart = dynamic(() => import("@/components/ui/PriceChart").then(m => m.PriceChart), { ssr: false });
 
@@ -47,6 +48,7 @@ export default function CardDetailClient({ id }: { id: string }) {
   const [editForm, setEditForm] = useState({ name: "", name_en: "", game: "", card_type: "", set_name: "", set_code: "", rarity: "", description: "", image_url: "" });
   const [editSaving, setEditSaving] = useState(false);
   const [showPriceReport, setShowPriceReport] = useState(false);
+  useScrollLock(showEdit || showPriceReport);
   const [priceForm, setPriceForm] = useState({ price: "", condition: "NM", source_url: "" });
   const [submitting, setSubmitting] = useState(false);
   const [inCollection, setInCollection] = useState(false);

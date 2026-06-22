@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 import { Plus, Trash2, Search, X, ArrowLeft } from "lucide-react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -20,6 +21,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
+  useScrollLock(showAdd);
   const [cards, setCards] = useState<any[]>([]);
   const [cardSearch, setCardSearch] = useState("");
   const [form, setForm] = useState({ card_id: "", max_price: "", notes: "" });

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Star, ShieldAlert, X } from "lucide-react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface TradeStats {
   completed_trades: number;
@@ -97,6 +98,7 @@ interface Props {
 export function TrustBadge({ userId, size = "md" }: Props) {
   const [stats, setStats] = useState<TradeStats | null>(null);
   const [showModal, setShowModal] = useState(false);
+  useScrollLock(showModal);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressing, setPressing] = useState(false);
 
