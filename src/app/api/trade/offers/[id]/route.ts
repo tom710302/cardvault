@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { notifyUser } from "@/lib/notify";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -51,6 +52,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (offer.from_user_id !== user.id && offer.to_user_id !== user.id)
     return NextResponse.json({ error: "無權限" }, { status: 403 });
 
+  // Fetch actor's display name for notification messages
+  const { data: actorProfile } = await admin
+    .from("profiles").select("username, display_name").eq("id", user.id).single();
+  const actorName = actorProfile?.display_name || actorProfile?.username || "對方";
+
   // Dual-confirmation flow: both parties must confirm receipt before completing
   if (body.action === "confirm") {
     if (offer.status !== "accepted")
@@ -64,6 +70,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const newFrom = isFrom ? true : offer.from_confirmed;
     const newTo = isFrom ? offer.to_confirmed : true;
+    const otherPartyId = isFrom ? offer.to_user_id : offer.from_user_id;
 
     if (newFrom && newTo) {
       await admin.from("trade_offers")
@@ -72,9 +79,24 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       await Promise.all([
         admin.rpc("increment_reputation", { user_id: offer.from_user_id, amount: 10 }).maybeSingle(),
         admin.rpc("increment_reputation", { user_id: offer.to_user_id, amount: 10 }).maybeSingle(),
+        notifyUser({
+          userId: otherPartyId,
+          type: "trade_completed",
+          title: "換卡交易已完成！",
+          body: "雙方都確認收到卡牌，別忘了留下評價",
+          link: `/trade/offers/${params.id}`,
+        }),
       ]);
       return NextResponse.json({ success: true, completed: true });
     }
+
+    await notifyUser({
+      userId: otherPartyId,
+      type: "offer_confirmed",
+      title: `${actorName} 已確認收到卡牌`,
+      body: "等待你確認後，換卡就完成了",
+      link: `/trade/offers/${params.id}`,
+    });
     return NextResponse.json({ success: true, completed: false });
   }
 
@@ -87,5 +109,29 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (status === "accepted") {
+    await notifyUser({
+      userId: offer.from_user_id,
+      type: "offer_accepted",
+      title: `${actorName} 接受了你的換卡提案`,
+      link: `/trade/offers/${params.id}`,
+    });
+  } else if (status === "rejected") {
+    await notifyUser({
+      userId: offer.from_user_id,
+      type: "offer_rejected",
+      title: `${actorName} 拒絕了你的換卡提案`,
+      link: `/trade/offers/${params.id}`,
+    });
+  } else if (status === "cancelled") {
+    await notifyUser({
+      userId: offer.to_user_id,
+      type: "offer_cancelled",
+      title: `${actorName} 取消了換卡提案`,
+      link: `/trade/offers/${params.id}`,
+    });
+  }
+
   return NextResponse.json({ success: true });
 }

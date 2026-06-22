@@ -90,6 +90,23 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`notif:${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        setNotifications(prev => [payload.new as any, ...prev]);
+        setUnreadCount(c => c + 1);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     setDropdownOpen(false);
@@ -205,10 +222,14 @@ export function Navbar() {
                     <Link key={n.id} href={n.link ?? "#"}
                       onClick={() => { setNotifOpen(false); if (!n.is_read) fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: n.id }) }); }}
                       className={`flex gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${!n.is_read ? "bg-brand-900/10" : ""}`}>
-                      <span className="text-lg shrink-0">{{ comment: "💬", reply: "↩️", vote: "▲", system: "📢", trade_match: "🔄" }[n.type as string] ?? "🔔"}</span>
+                      <span className="text-lg shrink-0 mt-0.5">{{
+                        trade_offer: "🔄", offer_accepted: "✅", offer_rejected: "❌",
+                        offer_cancelled: "🚫", offer_confirmed: "📦", trade_completed: "🎉",
+                        review_received: "⭐", comment: "💬", system: "📢",
+                      }[n.type as string] ?? "🔔"}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-200">{n.title}</p>
-                        {n.message && <p className="text-xs text-gray-500 truncate mt-0.5">{n.message}</p>}
+                        {n.body && <p className="text-xs text-gray-500 truncate mt-0.5">{n.body}</p>}
                       </div>
                       {!n.is_read && <span className="w-2 h-2 bg-brand-500 rounded-full shrink-0 mt-1.5" />}
                     </Link>

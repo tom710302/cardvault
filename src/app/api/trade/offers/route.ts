@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, getUserEmail, tradeOfferEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notify";
 
 const DAILY_LIMITS: Record<string, number> = { "新手": 3, "老手": 10, "收藏家": Infinity, "卡牌大師": Infinity };
 
@@ -82,10 +83,20 @@ export async function POST(request: NextRequest) {
     admin.from("profiles").select("username, display_name").eq("id", user.id).single(),
     getUserEmail(admin, to_user_id),
   ]);
-  if (toEmail) {
-    const fromName = fromProfile?.display_name || fromProfile?.username || "有人";
-    await sendEmail({ to: toEmail, subject: `${fromName} 向你提出了換卡邀請`, html: tradeOfferEmail(fromName) });
-  }
+  const fromName = fromProfile?.display_name || fromProfile?.username || "有人";
+
+  await Promise.all([
+    toEmail
+      ? sendEmail({ to: toEmail, subject: `${fromName} 向你提出了換卡邀請`, html: tradeOfferEmail(fromName) })
+      : Promise.resolve(),
+    notifyUser({
+      userId: to_user_id,
+      type: "trade_offer",
+      title: `${fromName} 向你發出換卡提案`,
+      body: message || null,
+      link: `/trade/offers/${offer.id}`,
+    }),
+  ]);
 
   return NextResponse.json({ offer }, { status: 201 });
 }

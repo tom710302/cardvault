@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { notifyUser } from "@/lib/notify";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -37,6 +38,19 @@ export async function POST(request: NextRequest) {
     if (error.code === "23505") return NextResponse.json({ error: "已評價過此交易" }, { status: 409 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const { data: reviewerProfile } = await admin
+    .from("profiles").select("username, display_name").eq("id", user.id).single();
+  const reviewerName = reviewerProfile?.display_name || reviewerProfile?.username || "用戶";
+  const ratingLabel = ({ positive: "好評", neutral: "中評", negative: "差評" } as Record<string, string>)[rating] ?? "評價";
+
+  await notifyUser({
+    userId: reviewee_id,
+    type: "review_received",
+    title: `${reviewerName} 給了你一個${ratingLabel}`,
+    body: comment?.trim() || null,
+    link: `/users/${reviewee_id}`,
+  });
 
   return NextResponse.json({ success: true });
 }
