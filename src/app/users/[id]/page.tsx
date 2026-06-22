@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
+import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail, ThumbsUp, ThumbsDown, Minus, UserPlus, UserCheck } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -48,6 +48,9 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
   const [startingConv, setStartingConv] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewStats, setReviewStats] = useState({ positive: 0, neutral: 0, negative: 0, total: 0 });
@@ -69,6 +72,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       setCurrentUser(user ?? null);
       if (user) {
         fetch(`/api/users/${params.id}/block`).then(r => r.json()).then(d => setIsBlocked(d.blocked ?? false));
+        fetch(`/api/users/${params.id}/follow`).then(r => r.json()).then(d => {
+          setIsFollowing(d.following ?? false);
+          setFollowerCount(d.follower_count ?? 0);
+        });
+      } else {
+        fetch(`/api/users/${params.id}/follow`).then(r => r.json()).then(d => setFollowerCount(d.follower_count ?? 0));
       }
 
       const { data: p } = await supabase.from("profiles").select("*").eq("id", params.id).single();
@@ -153,6 +162,18 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
     setReporting(false);
   }
 
+  async function toggleFollow() {
+    if (!currentUser) { router.push("/auth/login"); return; }
+    setFollowLoading(true);
+    const method = isFollowing ? "DELETE" : "POST";
+    const res = await fetch(`/api/users/${params.id}/follow`, { method });
+    if (res.ok) {
+      setIsFollowing(!isFollowing);
+      setFollowerCount(c => isFollowing ? c - 1 : c + 1);
+    }
+    setFollowLoading(false);
+  }
+
   if (loading) return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
       <div className="glass rounded-2xl h-40 shimmer" />
@@ -199,7 +220,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
             </div>
 
             {/* Stats */}
-            <div className="flex gap-6 mb-3">
+            <div className="flex gap-5 mb-3">
               <div className="text-center">
                 <div className="text-lg font-bold text-white">{collection.length}</div>
                 <div className="text-xs text-gray-500">收藏</div>
@@ -207,6 +228,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
               <div className="text-center">
                 <div className="text-lg font-bold text-white">{posts.length}</div>
                 <div className="text-xs text-gray-500">貼文</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">{followerCount}</div>
+                <div className="text-xs text-gray-500">粉絲</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-white">{profile.reputation.toLocaleString()}</div>
@@ -231,15 +256,21 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         {/* Action Buttons */}
         <div className="flex gap-2 flex-wrap">
           {currentUser && (
-            <button onClick={startConversation} disabled={startingConv}
-              className="flex-1 btn-primary text-sm py-2 flex items-center justify-center gap-2 disabled:opacity-50">
-              <Mail className="w-4 h-4" /> {startingConv ? "開啟中..." : "傳送訊息"}
-            </button>
+            <>
+              <button onClick={startConversation} disabled={startingConv}
+                className="flex-1 btn-primary text-sm py-2 flex items-center justify-center gap-2 disabled:opacity-50">
+                <Mail className="w-4 h-4" /> {startingConv ? "開啟中..." : "傳送訊息"}
+              </button>
+              <button onClick={toggleFollow} disabled={followLoading}
+                className={cn("flex-1 text-sm py-2 rounded-xl font-semibold border transition-colors flex items-center justify-center gap-2 disabled:opacity-50",
+                  isFollowing
+                    ? "bg-white/5 border-white/10 text-gray-300 hover:bg-red-900/10 hover:text-red-400 hover:border-red-800/30"
+                    : "bg-brand-600/20 border-brand-700/30 text-brand-400 hover:bg-brand-600/30"
+                )}>
+                {isFollowing ? <><UserCheck className="w-4 h-4" /> 已追蹤</> : <><UserPlus className="w-4 h-4" /> 追蹤</>}
+              </button>
+            </>
           )}
-          <Link href={`/community?search=${encodeURIComponent(profile.username)}`}
-            className="flex-1 btn-secondary text-sm py-2 flex items-center justify-center gap-2">
-            <MessageSquare className="w-4 h-4" /> 查看文章
-          </Link>
           <button
             onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("連結已複製！"); }}
             className="btn-secondary text-sm py-2 px-4 flex items-center gap-2"

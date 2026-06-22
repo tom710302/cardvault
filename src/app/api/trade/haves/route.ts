@@ -25,16 +25,18 @@ export async function POST(request: NextRequest) {
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // 配對通知：找出其他人想要這張卡的 want，各通知一次
-  const [{ data: matchedWants }, { data: myProfile }] = await Promise.all([
+  // 配對通知 + 追蹤者通知
+  const [{ data: matchedWants }, { data: myProfile }, { data: followers }] = await Promise.all([
     admin.from("trade_wants").select("user_id").ilike("card_name", card_name).eq("is_active", true).neq("user_id", user.id),
     admin.from("profiles").select("username, display_name").eq("id", user.id).single(),
+    admin.from("user_follows").select("follower_id").eq("following_id", user.id),
   ]);
   const myName = myProfile?.display_name || myProfile?.username || "某位收藏家";
   const matchedUserIds = Array.from(new Set((matchedWants ?? []).map((w: any) => w.user_id)));
+  const followerIds = (followers ?? []).map((f: any) => f.follower_id).filter((id: string) => !matchedUserIds.includes(id) && id !== user.id);
 
-  await Promise.all(
-    matchedUserIds.map(async (uid) => {
+  await Promise.all([
+    ...matchedUserIds.map(async (uid) => {
       await notifyUser({
         userId: uid,
         type: "trade_match",
@@ -44,8 +46,16 @@ export async function POST(request: NextRequest) {
       });
       const email = await getUserEmail(admin, uid);
       if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
-    })
-  );
+    }),
+    ...followerIds.map((uid: string) =>
+      notifyUser({
+        userId: uid,
+        type: "follow_new_card",
+        title: `${myName} 新增了可換的「${card_name}」`,
+        link: `/users/${user.id}`,
+      })
+    ),
+  ]);
 
   return NextResponse.json({ have: data }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, getUserEmail, commentReplyEmail } from "@/lib/email";
+import { notifyUser } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -45,12 +46,15 @@ export async function POST(request: NextRequest) {
     : (await admin.from("posts").select("author_id").eq("id", post_id).single()).data?.author_id;
 
   if (recipientId && recipientId !== user.id) {
-    const recipientEmail = await getUserEmail(admin, recipientId);
-    if (recipientEmail) {
-      const replierName = data.profiles?.display_name || data.profiles?.username || "有人";
-      const excerpt = content.length > 60 ? `${content.slice(0, 60)}...` : content;
-      await sendEmail({ to: recipientEmail, subject: `${replierName} 回覆了你`, html: commentReplyEmail(replierName, excerpt, post_id) });
-    }
+    const replierName = data.profiles?.display_name || data.profiles?.username || "有人";
+    const excerpt = content.length > 60 ? `${content.slice(0, 60)}...` : content;
+    const notifTitle = parent_id ? `${replierName} 回覆了你的留言` : `${replierName} 在你的貼文留言`;
+    await Promise.all([
+      notifyUser({ userId: recipientId, type: "comment_reply", title: notifTitle, body: excerpt, link: `/community/${post_id}` }),
+      getUserEmail(admin, recipientId).then(email => {
+        if (email) return sendEmail({ to: email, subject: notifTitle, html: commentReplyEmail(replierName, excerpt, post_id) });
+      }),
+    ]);
   }
 
   return NextResponse.json({ comment: data }, { status: 201 });

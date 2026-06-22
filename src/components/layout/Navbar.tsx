@@ -237,7 +237,8 @@ export function Navbar() {
                       <span className="text-lg shrink-0 mt-0.5">{{
                         trade_offer: "🔄", offer_accepted: "✅", offer_rejected: "❌",
                         offer_cancelled: "🚫", offer_confirmed: "📦", trade_completed: "🎉",
-                        review_received: "⭐", comment: "💬", system: "📢",
+                        review_received: "⭐", comment: "💬", comment_reply: "💬", system: "📢",
+                        new_follower: "👤", follow_new_card: "🃏",
                       }[n.type as string] ?? "🔔"}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-200">{n.title}</p>
