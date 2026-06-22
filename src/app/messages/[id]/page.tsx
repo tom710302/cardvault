@@ -149,7 +149,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col max-w-2xl mx-auto" style={{ height: "calc(100dvh - 4rem)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className="flex flex-col max-w-2xl mx-auto" style={{ height: "calc(100dvh - 4rem - env(safe-area-inset-top))" }}>
       {/* Header */}
       <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0">
         <Link href="/messages" className="text-gray-400 hover:text-white transition-colors">
@@ -217,7 +217,8 @@ export default function ChatPage() {
       </div>
 
       {/* Input area */}
-      <div className="glass border-t border-white/10 px-4 py-3 shrink-0 space-y-2">
+      <div className="glass border-t border-white/10 px-4 shrink-0 space-y-2"
+        style={{ paddingTop: "0.75rem", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         {/* File preview */}
         {filePreview && selectedFile && (
           <div className="relative inline-block">
