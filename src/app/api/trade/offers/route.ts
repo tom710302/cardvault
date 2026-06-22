@@ -27,17 +27,30 @@ export async function GET() {
 
   if (!offers?.length) return NextResponse.json({ offers: [] });
 
-  // Fetch profiles separately
+  // Fetch profiles and offer items in parallel
+  const offerIds = offers.map((o: any) => o.id);
   const uids = Array.from(new Set(offers.flatMap((o: any) => [o.from_user_id, o.to_user_id])));
-  const { data: profiles } = await admin.from("profiles").select("id, username, display_name, avatar_url").in("id", uids);
+  const [{ data: profiles }, { data: items }] = await Promise.all([
+    admin.from("profiles").select("id, username, display_name, avatar_url").in("id", uids),
+    admin.from("trade_offer_items").select("offer_id, direction, trade_haves(card_name, card_game, condition)").in("offer_id", offerIds),
+  ]);
+
   const pm: Record<string, any> = {};
   (profiles ?? []).forEach((p: any) => { pm[p.id] = p; });
+
+  const itemMap: Record<string, { offer: any[]; request: any[] }> = {};
+  (items ?? []).forEach((item: any) => {
+    if (!itemMap[item.offer_id]) itemMap[item.offer_id] = { offer: [], request: [] };
+    const dir = item.direction === "offer" ? "offer" : "request";
+    if (item.trade_haves) itemMap[item.offer_id][dir].push(item.trade_haves);
+  });
 
   return NextResponse.json({
     offers: offers.map((o: any) => ({
       ...o,
       from_profile: pm[o.from_user_id] ?? null,
       to_profile: pm[o.to_user_id] ?? null,
+      items: itemMap[o.id] ?? { offer: [], request: [] },
     }))
   });
 }
