@@ -11,7 +11,7 @@ export function Footer() {
               <Layers className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-bold text-white">
-              Card<span className="text-brand-400">Search</span>
+              Card<span className="text-brand-400">reasch</span>
             </span>
           </div>
           <p className="text-sm text-gray-500 leading-relaxed">
@@ -53,7 +53,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/5 px-4 py-4 max-w-7xl mx-auto flex items-center justify-between text-xs text-gray-600">
-        <span>© 2026 CardSearch. All rights reserved.</span>
+        <span>© 2026 Cardreasch. All rights reserved.</span>
         <span>台灣最大卡牌交流社群</span>
       </div>
     </footer>

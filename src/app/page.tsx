@@ -68,7 +68,7 @@ function PlatformArt() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,.08),transparent)]" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-2">
           <span className="text-4xl drop-shadow-lg">🃏</span>
-          <div className="text-[9px] text-indigo-200/60 font-bold tracking-widest uppercase">CardVault</div>
+          <div className="text-[9px] text-indigo-200/60 font-bold tracking-widest uppercase">Cardreasch</div>
         </div>
         <div className="absolute inset-x-2 top-1.5 h-px bg-indigo-300/20" />
         <div className="absolute inset-x-2 bottom-1.5 h-px bg-indigo-300/20" />

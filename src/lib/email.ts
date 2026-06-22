@@ -32,7 +32,7 @@ function wrapper(bodyHtml: string, ctaLabel: string, ctaHref: string) {
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1f2937;">
       <p style="font-size: 15px; line-height: 1.6;">${bodyHtml}</p>
       <a href="${siteUrl}${ctaHref}" style="display: inline-block; margin-top: 16px; padding: 10px 20px; background: #5c6aff; color: #fff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;">${ctaLabel}</a>
-      <p style="font-size: 12px; color: #9ca3af; margin-top: 32px;">CardSearch — TCG 與球員卡收藏交流平台</p>
+      <p style="font-size: 12px; color: #9ca3af; margin-top: 32px;">Cardreasch — TCG 與球員卡收藏交流平台</p>
     </div>
   `;
 }
