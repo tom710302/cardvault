@@ -66,6 +66,11 @@ export default function CollectionPage() {
     });
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = showAdd ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [showAdd]);
+
   const fetchCollection = useCallback(async () => {
     setLoading(true);
     const [colRes, valRes] = await Promise.all([
