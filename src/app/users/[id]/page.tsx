@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Grid3X3, Star, Package, ArrowLeft, MessageSquare, ArrowLeftRight, Share2, ShieldOff, Flag, CheckCircle, X, Mail, ThumbsUp, ThumbsDown, Minus, UserPlus, UserCheck } from "lucide-react";
 import { TrustBadge } from "@/components/trade/TrustBadge";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -204,9 +205,9 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       <div className="px-4 pt-4 pb-4 space-y-5">
         <div className="flex items-start gap-6">
           {/* Avatar */}
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden shrink-0">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-brand-600 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-bold border-2 border-white/10 overflow-hidden shrink-0">
             {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+              ? <Image src={profile.avatar_url} alt={profile.username} fill className="object-cover" />
               : profile.username?.[0]?.toUpperCase() ?? "?"}
           </div>
 
@@ -343,10 +344,11 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                 const inner = (
                   <>
                     {item.image_url || item.cards?.image_url ? (
-                      <img
+                      <Image
                         src={item.image_url ?? item.cards?.image_url ?? ""}
                         alt={item.cards?.name ?? ""}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
@@ -405,7 +407,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                 {tradeHaves.map((h: any) => (
                   <div key={h.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
                     {h.image_url
-                      ? <img src={h.image_url} alt={h.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ? <Image src={h.image_url} alt={h.card_name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                       : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-4xl">🃏</div>
                     }
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
@@ -433,7 +435,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
               <Link key={post.id} href={`/community/${post.id}`}
                 className="relative aspect-square bg-gray-900 overflow-hidden group">
                 {post.image_urls && post.image_urls.length > 0 ? (
-                  <img src={post.image_urls[0]} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <Image src={post.image_urls[0]} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 bg-gradient-to-br from-gray-800 to-gray-900">
                     <span className="text-2xl">

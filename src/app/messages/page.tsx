@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -43,9 +44,9 @@ export default function MessagesPage() {
           {conversations.map(conv => (
             <Link key={conv.id} href={`/messages/${conv.id}`}
               className={`flex items-center gap-3 glass rounded-2xl px-4 py-3 hover:border-brand-500/20 border transition-all ${conv.unread_count > 0 ? "border-brand-500/20 bg-brand-900/5" : "border-white/5"}`}>
-              <div className="w-10 h-10 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
+              <div className="relative w-10 h-10 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
                 {conv.other?.avatar_url
-                  ? <img src={conv.other.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ? <Image src={conv.other.avatar_url} alt="" fill className="object-cover" />
                   : (conv.other?.display_name ?? conv.other?.username)?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div className="flex-1 min-w-0">

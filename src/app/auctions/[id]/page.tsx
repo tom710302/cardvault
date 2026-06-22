@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Clock, Gavel, Users, TrendingUp, CheckCircle, Crown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -147,7 +148,7 @@ export default function AuctionDetailPage() {
           <div className="glass rounded-2xl overflow-hidden">
             <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-8xl relative">
               {auction.image_url
-                ? <img src={auction.image_url} alt={auction.title} className="w-full h-full object-contain" />
+                ? <Image src={auction.image_url} alt={auction.title} fill className="object-contain" />
                 : "🃏"
               }
               {isEnded && (

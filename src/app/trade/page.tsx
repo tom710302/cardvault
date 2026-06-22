@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeftRight, Plus, Zap, Users, ChevronRight, Star, Pencil, Send, Lock, X, Check, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -195,9 +196,9 @@ export default function TradePage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {myHaves.map((have: any) => (
                 <div key={have.id} className="glass rounded-xl overflow-hidden">
-                  <div className="h-28 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
+                  <div className="relative h-28 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
                     {have.image_url
-                      ? <img src={have.image_url} alt={have.card_name} className="w-full h-full object-cover" />
+                      ? <Image src={have.image_url} alt={have.card_name} fill className="object-cover" />
                       : (gameEmoji[have.card_game] ?? "🃏")}
                   </div>
                   <div className="p-2.5 space-y-0.5">
@@ -301,9 +302,9 @@ export default function TradePage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {recentHaves.slice(0, 10).map((have: any) => (
               <Link href={`/users/${have.user_id}`} key={have.id} className="glass rounded-xl overflow-hidden card-hover group block">
-                <div className="h-28 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
+                <div className="relative h-28 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
                   {have.image_url
-                    ? <img src={have.image_url} alt={have.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ? <Image src={have.image_url} alt={have.card_name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     : (gameEmoji[have.card_game] ?? "🃏")}
                 </div>
                 <div className="p-2.5 space-y-1">

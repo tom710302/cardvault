@@ -6,6 +6,7 @@ import { Plus, Trash2, ArrowLeftRight, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
+import Image from "next/image";
 
 const GAMES = ["寶可夢", "MTG", "遊戲王", "NBA", "MLB"];
 const CONDITIONS = ["M", "NM", "LP", "MP", "HP"];
@@ -140,7 +141,7 @@ export default function MyListPage() {
               {haves.map(h => (
                 <div key={h.id} className="glass rounded-xl p-3 flex items-center gap-3">
                   {h.image_url
-                    ? <img src={h.image_url} alt={h.card_name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                    ? <Image src={h.image_url} alt={h.card_name} width={48} height={48} className="rounded-lg object-cover shrink-0" />
                     : <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-2xl shrink-0">🃏</div>
                   }
                   <div className="flex-1 min-w-0">

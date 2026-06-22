@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Search, BarChart3, Package, TrendingUp, Star, Grid3X3, List, Trash2, X, Eye, EyeOff, Share2, DollarSign, ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { formatPrice, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -329,7 +330,7 @@ export default function CollectionPage() {
                   <>
                     <div className="aspect-[5/7] bg-gray-800 flex items-center justify-center text-5xl relative overflow-hidden">
                       {item.image_url || item.cards?.image_url ? (
-                        <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
+                        <Image src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} fill className="object-cover" />
                       ) : <span>🃏</span>}
                       {item.quantity > 1 && (
                         <span className="absolute top-2 right-2 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{item.quantity}</span>
@@ -366,9 +367,9 @@ export default function CollectionPage() {
         <div className="space-y-2">
           {filtered.map(item => (
             <div key={item.id} className="glass rounded-xl p-4 flex items-center gap-4 group">
-              <div className="w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+              <div className="relative w-12 h-16 bg-gray-800 rounded-lg flex items-center justify-center text-2xl shrink-0 overflow-hidden">
                 {item.image_url || item.cards?.image_url ? (
-                  <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} className="w-full h-full object-cover" />
+                  <Image src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? ""} fill className="object-cover" />
                 ) : <span>🃏</span>}
               </div>
               <div className="flex-1 min-w-0">

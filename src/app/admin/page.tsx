@@ -8,6 +8,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Stats { users: number; posts: number; cards: number; collections: number; }
 interface Post { id: string; title: string; board: string; post_type: string; is_deleted: boolean; created_at: string; profiles: { username: string } | null; }
@@ -681,7 +682,7 @@ export default function AdminPage() {
                 ) : stores.map(store => (
                   <div key={store.id} className="p-4 flex items-start gap-3">
                     {store.image_url && (
-                      <img src={store.image_url} alt={store.name} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                      <Image src={store.image_url} alt={store.name} width={64} height={64} className="rounded-lg object-cover shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

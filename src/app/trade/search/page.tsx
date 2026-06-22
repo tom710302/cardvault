@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Package, Bookmark, ArrowLeftRight, ArrowLeft, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -186,7 +187,7 @@ function TradeSearchContent() {
                   <div key={item.id} className="glass rounded-xl p-4 flex items-center gap-4">
                     {/* Card image */}
                     {tab === "haves" && item.image_url ? (
-                      <img src={item.image_url} alt={item.card_name} className="w-12 h-16 object-cover rounded-lg shrink-0" />
+                      <Image src={item.image_url} alt={item.card_name} width={48} height={64} className="object-cover rounded-lg shrink-0" />
                     ) : (
                       <div className="w-12 h-16 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 text-gray-600 text-lg">
                         {gameEmoji[item.card_game] ?? "🃏"}
@@ -209,7 +210,7 @@ function TradeSearchContent() {
                       {profile && (
                         <Link href={`/users/${profile.id}`} className="flex items-center gap-1.5 mt-2 w-fit hover:opacity-80">
                           {profile.avatar_url
-                            ? <img src={profile.avatar_url} className="w-5 h-5 rounded-full object-cover" />
+                            ? <Image src={profile.avatar_url} alt="" width={20} height={20} className="rounded-full object-cover" />
                             : <div className="w-5 h-5 rounded-full bg-brand-700 flex items-center justify-center text-[10px] text-white font-bold">{(profile.display_name || profile.username)?.[0]?.toUpperCase()}</div>
                           }
                           <span className="text-xs text-gray-400">{profile.display_name || profile.username}</span>

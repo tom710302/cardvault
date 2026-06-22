@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Plus, Eye, Layers, Search, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -106,9 +107,9 @@ export default function DecksPage() {
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-white/5">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-brand-700 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                    <div className="relative w-6 h-6 rounded-full bg-brand-700 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                       {deck.profiles?.avatar_url
-                        ? <img src={deck.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ? <Image src={deck.profiles.avatar_url} alt="" fill className="object-cover" />
                         : deck.profiles?.username?.[0]?.toUpperCase()}
                     </div>
                     <span className="text-xs text-gray-400">{deck.profiles?.display_name ?? deck.profiles?.username}</span>

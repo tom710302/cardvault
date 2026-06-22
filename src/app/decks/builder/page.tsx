@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Plus, Minus, Trash2, Save, Share2, ArrowLeft, Eye, EyeOff, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 
@@ -213,9 +214,9 @@ function DeckBuilderInner() {
               const inDeck = deckCards.find(c => c.card_id === card.id);
               return (
                 <div key={card.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group">
-                  <div className="w-10 h-14 rounded-lg bg-gray-800 overflow-hidden shrink-0">
+                  <div className="relative w-10 h-14 rounded-lg bg-gray-800 overflow-hidden shrink-0">
                     {card.image_url
-                      ? <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                      ? <Image src={card.image_url} alt={card.name} fill className="object-cover" />
                       : <div className="w-full h-full flex items-center justify-center text-xl">🃏</div>
                     }
                   </div>
@@ -267,9 +268,9 @@ function DeckBuilderInner() {
             ) : (
               deckCards.map(card => (
                 <div key={card.card_id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 group">
-                  <div className="w-8 h-11 rounded bg-gray-800 overflow-hidden shrink-0">
+                  <div className="relative w-8 h-11 rounded bg-gray-800 overflow-hidden shrink-0">
                     {card.image_url
-                      ? <img src={card.image_url} alt={card.card_name} className="w-full h-full object-cover" />
+                      ? <Image src={card.image_url} alt={card.card_name} fill className="object-cover" />
                       : <div className="w-full h-full flex items-center justify-center text-sm">🃏</div>
                     }
                   </div>

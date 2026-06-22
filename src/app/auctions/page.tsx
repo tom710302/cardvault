@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Plus, Clock, TrendingUp, Gavel, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -143,7 +144,7 @@ export default function AuctionsPage() {
                 {/* Image */}
                 <div className="h-44 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
                   {auction.image_url
-                    ? <img src={auction.image_url} alt={auction.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ? <Image src={auction.image_url} alt={auction.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     : <div className="w-full h-full flex items-center justify-center text-5xl">🃏</div>
                   }
                   {/* Status badge */}

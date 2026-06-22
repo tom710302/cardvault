@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import Link from "next/link";
+import Image from "next/image";
 import { Settings, Grid3X3, Star, Package, Eye, EyeOff, Trash2, Plus, Save, X, Camera, ArrowLeftRight, Search, List, BarChart3, TrendingUp, Bookmark, MessageSquare } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -198,7 +199,8 @@ export default function MyPage() {
               className="absolute -top-4 -right-4 w-9 h-9 rounded-full bg-gray-800 border border-white/20 flex items-center justify-center text-gray-300 hover:text-white z-10">
               <X className="w-4 h-4" />
             </button>
-            <img src={profile.avatar_url} alt={profile.username}
+            <Image src={profile.avatar_url} alt={profile.username}
+              width={384} height={384}
               className="w-72 h-72 sm:w-96 sm:h-96 rounded-full object-cover border-4 border-white/20 shadow-2xl" />
           </div>
         </div>
@@ -365,7 +367,7 @@ export default function MyPage() {
               onContextMenu={e => e.preventDefault()}
             >
               {profile.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover pointer-events-none" />
+                ? <Image src={profile.avatar_url} alt={profile.username} fill className="object-cover pointer-events-none" />
                 : profile.username?.[0]?.toUpperCase() ?? "?"}
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
                 {uploadingAvatar
@@ -518,8 +520,8 @@ export default function MyPage() {
                 {filteredCollection.map(item => (
                   <div key={item.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
                     {item.image_url || item.cards?.image_url ? (
-                      <img src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? item.custom_name ?? ""}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <Image src={item.image_url ?? item.cards?.image_url ?? ""} alt={item.cards?.name ?? item.custom_name ?? ""}
+                        fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
                         <span className="text-4xl">{gameEmoji[item.cards?.game ?? ""] ?? "🃏"}</span>
@@ -561,9 +563,9 @@ export default function MyPage() {
               <div className="space-y-2">
                 {filteredCollection.map(item => (
                   <div key={item.id} className="glass rounded-xl p-3 flex items-center gap-3 group">
-                    <div className="w-10 h-14 bg-gray-800 rounded-lg flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                    <div className="relative w-10 h-14 bg-gray-800 rounded-lg flex items-center justify-center text-xl shrink-0 overflow-hidden">
                       {item.image_url || item.cards?.image_url
-                        ? <img src={item.image_url ?? item.cards?.image_url ?? ""} alt="" className="w-full h-full object-cover" />
+                        ? <Image src={item.image_url ?? item.cards?.image_url ?? ""} alt="" fill className="object-cover" />
                         : <span>🃏</span>}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -603,7 +605,7 @@ export default function MyPage() {
                 <Link key={post.id} href={`/community/${post.id}`}
                   className="relative aspect-square bg-gray-900 overflow-hidden group">
                   {post.image_urls && post.image_urls.length > 0 ? (
-                    <img src={post.image_urls[0]} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <Image src={post.image_urls[0]} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 bg-gradient-to-br from-gray-800 to-gray-900">
                       <span className="text-2xl">
@@ -661,7 +663,7 @@ export default function MyPage() {
                 {tradeHaves.map((h: any) => (
                   <div key={h.id} className="relative aspect-square bg-gray-900 overflow-hidden group">
                     {h.image_url
-                      ? <img src={h.image_url} alt={h.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ? <Image src={h.image_url} alt={h.card_name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                       : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-4xl">🃏</div>
                     }
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
@@ -726,8 +728,8 @@ export default function MyPage() {
                 <Link href={`/community/${post.id}`} key={b.post_id}
                   className="glass rounded-xl p-4 flex gap-3 card-hover group block">
                   {post.image_urls?.[0] && (
-                    <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
-                      <img src={post.image_urls[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                      <Image src={post.image_urls[0]} alt="" fill className="object-cover" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0 space-y-1">

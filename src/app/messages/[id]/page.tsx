@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Send, ArrowLeft, ImagePlus, X, Play } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Message {
   id: string; sender_id: string; content: string | null;
@@ -159,9 +160,9 @@ export default function ChatPage() {
           <div className="w-32 h-4 bg-gray-800 rounded shimmer" />
         ) : otherUser && (
           <>
-            <div className="w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
+            <div className="relative w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
               {otherUser.avatar_url
-                ? <img src={otherUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                ? <Image src={otherUser.avatar_url} alt="" fill className="object-cover" />
                 : (otherUser.display_name ?? otherUser.username)?.[0]?.toUpperCase()}
             </div>
             <Link href={`/users/${otherUser.id}`}

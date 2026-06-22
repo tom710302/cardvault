@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Eye, Edit, Copy } from "lucide-react";
 import { Metadata } from "next";
 
@@ -75,9 +76,9 @@ export default async function DeckDetailPage({ params }: Props) {
 
         {/* Author */}
         <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-          <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+          <div className="relative w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
             {deck.profiles?.avatar_url
-              ? <img src={deck.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+              ? <Image src={deck.profiles.avatar_url} alt="" fill className="object-cover" />
               : deck.profiles?.username?.[0]?.toUpperCase()}
           </div>
           <div>
@@ -97,10 +98,10 @@ export default async function DeckDetailPage({ params }: Props) {
           {(cards ?? []).map((c: any) => (
             <Link key={c.id} href={c.card_id ? `/cards/${c.card_id}` : "#"}
               className="group relative">
-              <div className="aspect-[5/7] rounded-xl overflow-hidden bg-gray-800">
+              <div className="relative aspect-[5/7] rounded-xl overflow-hidden bg-gray-800">
                 {c.cards?.image_url || c.image_url
-                  ? <img src={c.cards?.image_url ?? c.image_url} alt={c.card_name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ? <Image src={c.cards?.image_url ?? c.image_url} alt={c.card_name}
+                      fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   : <div className="w-full h-full flex items-center justify-center text-3xl">🃏</div>
                 }
                 {c.quantity > 1 && (

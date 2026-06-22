@@ -7,6 +7,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 
@@ -297,7 +298,7 @@ export default function MyStorePage() {
               {products.map(p => (
                 <div key={p.id} className={`glass rounded-xl p-4 flex items-center gap-4 ${!p.is_active ? "opacity-40" : ""}`}>
                   {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                    <Image src={p.image_url} alt={p.name} width={56} height={56} className="rounded-lg object-cover shrink-0" />
                   ) : (
                     <div className="w-14 h-14 rounded-lg bg-gray-800 flex items-center justify-center text-2xl shrink-0">📦</div>
                   )}
@@ -394,7 +395,7 @@ export default function MyStorePage() {
                     <div className="grid grid-cols-3 gap-2">
                       {eventForm.image_urls.map((url, i) => (
                         <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <Image src={url} alt="" fill className="object-cover" />
                           <button type="button" onClick={() => setEventForm(v => ({ ...v, image_urls: v.image_urls.filter((_, idx) => idx !== i) }))}
                             className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white text-xs">✕</button>
                         </div>
@@ -434,7 +435,7 @@ export default function MyStorePage() {
               {events.map(ev => (
                 <div key={ev.id} className={`glass rounded-xl overflow-hidden flex ${!ev.is_active ? "opacity-40" : ""}`}>
                   {ev.image_url && (
-                    <img src={ev.image_url} alt={ev.title} className="w-24 h-24 object-cover shrink-0" />
+                    <Image src={ev.image_url} alt={ev.title} width={96} height={96} className="object-cover shrink-0" />
                   )}
                   <div className="p-4 flex-1 min-w-0 flex items-center gap-3">
                     <div className="flex-1 min-w-0">

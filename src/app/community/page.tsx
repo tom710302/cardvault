@@ -17,6 +17,7 @@ function stripMarkdown(text: string) {
 import { createClient } from "@/lib/supabase/client";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
+import Image from "next/image";
 
 interface Post {
   id: string; title: string; content: string; board: string; post_type: string;
@@ -262,7 +263,7 @@ function CommunityContent() {
                 <div className="grid grid-cols-2 gap-2">
                   {postImages.map((url, i) => (
                     <div key={i} className="relative rounded-lg overflow-hidden aspect-video">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <Image src={url} alt="" fill className="object-cover" />
                       <button type="button" onClick={() => setPostImages(prev => prev.filter((_, idx) => idx !== i))}
                         className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80">
                         <X className="w-3 h-3" />
@@ -445,8 +446,8 @@ function CommunityContent() {
                     {post.image_urls && post.image_urls.length > 0 && (
                       <div className="flex gap-1.5 mt-1">
                         {post.image_urls.slice(0, 3).map((url, i) => (
-                          <div key={i} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
+                            <Image src={url} alt="" fill className="object-cover" />
                           </div>
                         ))}
                         {post.image_urls.length > 3 && (
@@ -540,9 +541,9 @@ function CommunityContent() {
                   {/* Card preview strip */}
                   <div className="relative grid grid-cols-4 h-28 bg-gray-900">
                     {u.preview_images.slice(0, 4).map((img, i) => (
-                      <div key={i} className="overflow-hidden bg-gray-800">
-                        <img src={img} alt=""
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <div key={i} className="relative overflow-hidden bg-gray-800">
+                        <Image src={img} alt="" fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-500" />
                       </div>
                     ))}
                     {Array(Math.max(0, 4 - u.preview_images.length)).fill(0).map((_, i) => (
@@ -560,9 +561,9 @@ function CommunityContent() {
                   {/* User info */}
                   <div className="p-4 space-y-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
+                      <div className="relative w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold overflow-hidden shrink-0">
                         {u.avatar_url
-                          ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                          ? <Image src={u.avatar_url} alt={u.username} fill className="object-cover" />
                           : u.username[0]?.toUpperCase()
                         }
                       </div>
@@ -623,9 +624,9 @@ function CommunityContent() {
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                   </div>
                   {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold text-sm overflow-hidden shrink-0">
+                  <div className="relative w-9 h-9 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold text-sm overflow-hidden shrink-0">
                     {u.avatar_url
-                      ? <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                      ? <Image src={u.avatar_url} alt={u.username || ""} fill className="object-cover" />
                       : u.username?.[0]?.toUpperCase()}
                   </div>
                   {/* Info */}

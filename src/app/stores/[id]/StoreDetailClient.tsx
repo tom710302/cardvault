@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, MapPin, Phone, Clock, Globe, Navigation, CheckCircle, Calendar, Package, MessageSquare, ExternalLink } from "lucide-react";
 
 interface Store {
@@ -85,7 +86,7 @@ export default function StoreDetailClient({ id }: { id: string }) {
         {/* Cover Image */}
         <div className="h-56 md:h-72 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
           {store.image_url ? (
-            <img src={store.image_url} alt={store.name} className="w-full h-full object-cover" />
+            <Image src={store.image_url} alt={store.name} fill className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <MapPin className="w-20 h-20 text-gray-700" />
@@ -269,7 +270,7 @@ export default function StoreDetailClient({ id }: { id: string }) {
                 {filtered.map(p => (
                   <div key={p.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
                     {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                      <Image src={p.image_url} alt={p.name} width={48} height={48} className="rounded-lg object-cover shrink-0" />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-xl shrink-0">📦</div>
                     )}
@@ -315,8 +316,8 @@ export default function StoreDetailClient({ id }: { id: string }) {
                 <Link key={event.id} href={`/stores/${id}/events/${event.id}`}
                   className="glass rounded-2xl overflow-hidden card-hover group block">
                   {event.image_url && (
-                    <div className="h-48 overflow-hidden">
-                      <img src={event.image_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <div className="relative h-48 overflow-hidden">
+                      <Image src={event.image_url} alt={event.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
                   )}
                   <div className="p-5 space-y-2">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Clock, ChevronRight, ArrowLeftRight, Star, Trophy, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -140,7 +141,7 @@ export default function TradeHistoryPage() {
                 {/* Avatar */}
                 <div className="shrink-0 mt-0.5">
                   {other?.avatar_url
-                    ? <img src={other.avatar_url} className="w-10 h-10 rounded-full object-cover" />
+                    ? <Image src={other.avatar_url} alt="" width={40} height={40} className="rounded-full object-cover" />
                     : <div className="w-10 h-10 rounded-full bg-brand-700 flex items-center justify-center text-white font-bold text-sm">
                         {(other?.display_name || other?.username)?.[0]?.toUpperCase() ?? "?"}
                       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { TrendingUp, MessageSquare, Users, Star, ArrowRight, Flame, Zap, Trophy, ChevronRight, ChevronLeft, ArrowLeftRight } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
@@ -334,9 +335,9 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {recentTrades.map((have: any) => (
               <Link href={`/users/${have.user_id}`} key={have.id} className="glass rounded-xl overflow-hidden card-hover group block">
-                <div className="h-32 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
+                <div className="relative h-32 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-4xl overflow-hidden">
                   {have.image_url
-                    ? <img src={have.image_url} alt={have.card_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ? <Image src={have.image_url} alt={have.card_name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     : "🃏"}
                 </div>
                 <div className="p-3 space-y-1">
@@ -370,7 +371,7 @@ export default function HomePage() {
                 {/* Banner */}
                 <div className="h-32 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
                   {store.image_url
-                    ? <img src={store.image_url} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ? <Image src={store.image_url} alt={store.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     : <div className="w-full h-full flex items-center justify-center text-4xl">🏪</div>
                   }
                   {store.is_verified && (

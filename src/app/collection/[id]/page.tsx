@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Share2, TrendingUp, MessageSquare } from "lucide-react";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -95,9 +96,9 @@ export default function CollectionItemPage({ params }: { params: { id: string } 
       {/* Main Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="space-y-4">
-          <div className="aspect-[5/7] rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-[80px] border border-white/10 shadow-2xl">
+          <div className="aspect-[5/7] rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-[80px] border border-white/10 shadow-2xl relative">
             {displayImage ? (
-              <img src={displayImage} alt={displayName} className="w-full h-full object-cover" />
+              <Image src={displayImage} alt={displayName} fill className="object-cover" />
             ) : (
               <span>{gameEmoji[displayGame ?? ""] ?? "🃏"}</span>
             )}

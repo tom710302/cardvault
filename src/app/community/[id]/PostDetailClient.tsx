@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, MessageSquare, Eye, Send, Trash2, ChevronDown, Edit2, X, ImageIcon, Bookmark, Flag } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -293,7 +294,7 @@ export default function PostDetailClient({ id }: { id: string }) {
                   <div className="grid grid-cols-4 gap-2">
                     {editImages.map((url, i) => (
                       <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <Image src={url} alt="" fill className="object-cover" />
                         <button type="button" onClick={() => setEditImages(prev => prev.filter((_, idx) => idx !== i))}
                           className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors">
                           <X className="w-3 h-3" />
@@ -367,8 +368,8 @@ export default function PostDetailClient({ id }: { id: string }) {
                   <div className={`grid gap-2 ${post.image_urls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                     {post.image_urls.map((url: string, i: number) => (
                       <a key={i} href={url} target="_blank" rel="noreferrer"
-                        className="rounded-xl overflow-hidden block aspect-video hover:opacity-90 transition-opacity">
-                        <img src={url} alt={`附圖 ${i + 1}`} className="w-full h-full object-cover" />
+                        className="relative rounded-xl overflow-hidden block aspect-video hover:opacity-90 transition-opacity">
+                        <Image src={url} alt={`附圖 ${i + 1}`} fill className="object-cover" />
                       </a>
                     ))}
                   </div>

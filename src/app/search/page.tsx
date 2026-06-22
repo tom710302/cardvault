@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search, MapPin, Phone, Clock, Globe, CheckCircle, Navigation,
   Calendar, Users, ExternalLink, Plus, X, ChevronDown, RefreshCw
@@ -245,7 +246,7 @@ function SearchContent() {
                   <Link href={`/stores/${store.id}`} className="block">
                     <div className="h-40 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
                       {store.image_url
-                        ? <img src={store.image_url} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ? <Image src={store.image_url} alt={store.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         : <div className="w-full h-full flex items-center justify-center"><MapPin className="w-10 h-10 text-gray-600" /></div>
                       }
                       {store.is_verified && (
