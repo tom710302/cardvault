@@ -16,45 +16,62 @@ export async function GET() {
 
   if (!myHaves?.length && !myWants?.length) return NextResponse.json({ matches: [] });
 
-  // Find all other users' haves and wants
   const myHaveNames = (myHaves ?? []).map((h: any) => h.card_name.toLowerCase());
   const myWantNames = (myWants ?? []).map((w: any) => w.card_name.toLowerCase());
 
-  // Users who have what I want
-  const { data: theyHaveWhatIWant } = await admin
-    .from("trade_haves")
-    .select("*, profiles(id, username, display_name, avatar_url)")
-    .neq("user_id", user.id)
-    .eq("is_active", true);
+  // Fetch users with active offers to exclude them
+  const { data: activeOffers } = await admin
+    .from("trade_offers")
+    .select("from_user_id, to_user_id")
+    .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
+    .in("status", ["pending", "accepted"]);
 
-  // Users who want what I have
-  const { data: theyWantWhatIHave } = await admin
-    .from("trade_wants")
-    .select("*, profiles(id, username, display_name, avatar_url)")
-    .neq("user_id", user.id)
-    .eq("is_active", true);
+  const excludedIds = new Set<string>(
+    (activeOffers ?? []).map((o: any) =>
+      o.from_user_id === user.id ? o.to_user_id : o.from_user_id
+    )
+  );
 
-  // Group by user and find matches
+  const [{ data: theyHaveWhatIWant }, { data: theyWantWhatIHave }] = await Promise.all([
+    admin.from("trade_haves")
+      .select("*, profiles(id, username, display_name, avatar_url)")
+      .neq("user_id", user.id)
+      .eq("is_active", true),
+    admin.from("trade_wants")
+      .select("*, profiles(id, username, display_name, avatar_url)")
+      .neq("user_id", user.id)
+      .eq("is_active", true),
+  ]);
+
   const userMap: Record<string, any> = {};
 
   (theyHaveWhatIWant ?? []).forEach((item: any) => {
+    if (excludedIds.has(item.user_id)) return;
     if (!myWantNames.includes(item.card_name.toLowerCase())) return;
     const uid = item.user_id;
-    if (!userMap[uid]) userMap[uid] = { user: item.profiles, uid, theyHaveForMe: [], theyWantFromMe: [], perfectMatch: false };
+    if (!userMap[uid]) userMap[uid] = { user: item.profiles, uid, theyHaveForMe: [], theyWantFromMe: [] };
     userMap[uid].theyHaveForMe.push(item);
   });
 
   (theyWantWhatIHave ?? []).forEach((item: any) => {
+    if (excludedIds.has(item.user_id)) return;
     if (!myHaveNames.includes(item.card_name.toLowerCase())) return;
     const uid = item.user_id;
-    if (!userMap[uid]) userMap[uid] = { user: item.profiles, uid, theyHaveForMe: [], theyWantFromMe: [], perfectMatch: false };
+    if (!userMap[uid]) userMap[uid] = { user: item.profiles, uid, theyHaveForMe: [], theyWantFromMe: [] };
     userMap[uid].theyWantFromMe.push(item);
   });
 
   const matches = Object.values(userMap)
-    .map((m: any) => ({ ...m, perfectMatch: m.theyHaveForMe.length > 0 && m.theyWantFromMe.length > 0 }))
+    .map((m: any) => ({
+      ...m,
+      perfectMatch: m.theyHaveForMe.length > 0 && m.theyWantFromMe.length > 0,
+      overlapCount: m.theyHaveForMe.length + m.theyWantFromMe.length,
+    }))
     .filter((m: any) => m.theyHaveForMe.length > 0 || m.theyWantFromMe.length > 0)
-    .sort((a: any, b: any) => (b.perfectMatch ? 1 : 0) - (a.perfectMatch ? 1 : 0));
+    .sort((a: any, b: any) => {
+      if (b.perfectMatch !== a.perfectMatch) return b.perfectMatch ? 1 : -1;
+      return b.overlapCount - a.overlapCount;
+    });
 
   return NextResponse.json({ matches });
 }
