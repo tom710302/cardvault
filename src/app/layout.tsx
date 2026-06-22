@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Footer } from "@/components/layout/Footer";
+import { PushPrompt } from "@/components/PushPrompt";
 import { ToastProvider } from "@/components/ui/Toast";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cardvault-beta.vercel.app";
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-screen pb-16 md:pb-0">{children}</main>
           <div className="hidden md:block"><Footer /></div>
           <BottomNav />
+          <PushPrompt />
         </ToastProvider>
       </body>
     </html>
