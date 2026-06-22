@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useToast } from "@/components/ui/Toast";
+import dynamic from "next/dynamic";
+
+const CollectionCharts = dynamic(() => import("@/components/ui/CollectionCharts").then(m => m.CollectionCharts), { ssr: false });
 
 const RARITY_TIERS: [string[], string][] = [
   [["hyper", "rainbow", "starlight", "prismatic", "gold star"], "text-yellow-300 bg-yellow-900/20 border-yellow-700/30"],
@@ -276,6 +279,9 @@ export default function CollectionPage() {
           )}
         </div>
       </div>
+
+      {/* Charts */}
+      {items.length > 0 && <CollectionCharts items={items} />}
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3">

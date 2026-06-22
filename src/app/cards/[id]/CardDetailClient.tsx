@@ -27,11 +27,18 @@ interface PriceReport {
   created_at: string; profiles: { username: string } | null;
 }
 
+interface ScryfallPrice {
+  usd: string | null; usd_foil: string | null; usd_etched: string | null;
+  scryfall_uri: string | null;
+}
+
 export default function CardDetailClient({ id }: { id: string }) {
   const [card, setCard] = useState<Card | null>(null);
   const [reports, setReports] = useState<PriceReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "price" | "discussion">("overview");
+  const [scryfallPrice, setScryfallPrice] = useState<ScryfallPrice | null>(null);
+  const [scryfallLoading, setScryfallLoading] = useState(false);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -58,8 +65,11 @@ export default function CardDetailClient({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    if (activeTab === "price") fetchPriceReports();
-  }, [activeTab]);
+    if (activeTab === "price") {
+      fetchPriceReports();
+      if (card?.game === "MTG") fetchScryfallPrice(card.name_en || card.name);
+    }
+  }, [activeTab, card]);
 
   async function fetchCard() {
     const res = await fetch(`/api/cards/${id}`);
@@ -103,6 +113,13 @@ export default function CardDetailClient({ id }: { id: string }) {
   async function fetchPriceReports() {
     const res = await fetch(`/api/price-reports?card_id=${id}`);
     if (res.ok) { const { reports } = await res.json(); setReports(reports ?? []); }
+  }
+
+  async function fetchScryfallPrice(name: string) {
+    setScryfallLoading(true);
+    const res = await fetch(`/api/cards/scryfall-price?name=${encodeURIComponent(name)}`);
+    if (res.ok) setScryfallPrice(await res.json());
+    setScryfallLoading(false);
   }
 
   async function addToCollection() {
@@ -399,6 +416,55 @@ export default function CardDetailClient({ id }: { id: string }) {
       )}
 
       {activeTab === "price" && (
+        <div className="space-y-4">
+
+          {/* Scryfall 即時價格（僅 MTG） */}
+          {card?.game === "MTG" && (
+            <div className="glass rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4 text-blue-400" /> Scryfall 即時行情
+                </h3>
+                <a href={scryfallPrice?.scryfall_uri ?? `https://scryfall.com/search?q=${encodeURIComponent(card.name_en || card.name)}`}
+                  target="_blank" rel="noreferrer"
+                  className="text-xs text-gray-500 hover:text-brand-400 transition-colors">
+                  在 Scryfall 查看 →
+                </a>
+              </div>
+              {scryfallLoading ? (
+                <div className="flex gap-4">
+                  {[1,2,3].map(i => <div key={i} className="h-12 w-24 rounded-lg shimmer" />)}
+                </div>
+              ) : scryfallPrice ? (
+                <div className="flex flex-wrap gap-3">
+                  {scryfallPrice.usd && (
+                    <div className="bg-green-900/20 border border-green-700/30 rounded-lg px-4 py-2.5 text-center">
+                      <div className="text-xs text-gray-400 mb-0.5">普通版</div>
+                      <div className="text-lg font-bold text-green-400">${scryfallPrice.usd}</div>
+                    </div>
+                  )}
+                  {scryfallPrice.usd_foil && (
+                    <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg px-4 py-2.5 text-center">
+                      <div className="text-xs text-gray-400 mb-0.5">閃卡版</div>
+                      <div className="text-lg font-bold text-purple-400">${scryfallPrice.usd_foil}</div>
+                    </div>
+                  )}
+                  {scryfallPrice.usd_etched && (
+                    <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-4 py-2.5 text-center">
+                      <div className="text-xs text-gray-400 mb-0.5">蝕刻版</div>
+                      <div className="text-lg font-bold text-yellow-400">${scryfallPrice.usd_etched}</div>
+                    </div>
+                  )}
+                  {!scryfallPrice.usd && !scryfallPrice.usd_foil && !scryfallPrice.usd_etched && (
+                    <p className="text-sm text-gray-500">Scryfall 暫無此卡價格資料</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">無法載入 Scryfall 價格</p>
+              )}
+            </div>
+          )}
+
         <div className="glass rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-white flex items-center gap-2">
@@ -437,6 +503,7 @@ export default function CardDetailClient({ id }: { id: string }) {
               </div>
             ))}
           </div>
+        </div>
         </div>
       )}
 
