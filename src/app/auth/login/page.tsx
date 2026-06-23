@@ -46,7 +46,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
               <Layers className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">Card<span className="text-brand-400">Search</span></span>
+            <span className="text-2xl font-bold text-white">Card<span className="text-brand-400">reasch</span></span>
           </Link>
           <h1 className="text-2xl font-bold text-white">{isSignUp ? "建立帳號" : "歡迎回來"}</h1>
           <p className="text-gray-400 text-sm mt-1">{isSignUp ? "加入台灣最大卡牌收藏社群" : "登入你的 Cardreasch 帳號"}</p>
