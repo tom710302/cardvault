@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail, getUserEmail, commentReplyEmail } from "@/lib/email";
+import { sendEmail, getUserEmail, commentReplyEmail, checkEmailPref } from "@/lib/email";
 import { notifyUser } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
@@ -51,8 +51,10 @@ export async function POST(request: NextRequest) {
     const notifTitle = parent_id ? `${replierName} 回覆了你的留言` : `${replierName} 在你的貼文留言`;
     await Promise.all([
       notifyUser({ userId: recipientId, type: "comment_reply", title: notifTitle, body: excerpt, link: `/community/${post_id}` }),
-      getUserEmail(admin, recipientId).then(email => {
-        if (email) return sendEmail({ to: email, subject: notifTitle, html: commentReplyEmail(replierName, excerpt, post_id) });
+      getUserEmail(admin, recipientId).then(async email => {
+        if (!email) return;
+        const canEmail = await checkEmailPref(admin, recipientId, "comment_reply");
+        if (canEmail) return sendEmail({ to: email, subject: notifTitle, html: commentReplyEmail(replierName, excerpt, post_id) });
       }),
     ]);
   }

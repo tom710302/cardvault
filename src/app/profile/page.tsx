@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { User, Save, ArrowLeft } from "lucide-react";
+import { User, Save, ArrowLeft, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [prefs, setPrefs] = useState({ email_trade_offer: true, email_comment_reply: true, email_trade_match: true });
+  const [savingPrefs, setSavingPrefs] = useState(false);
   const supabase = createClient();
   const router = useRouter();
   const toast = useToast();
@@ -22,8 +24,12 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/login"); return; }
       setUser(user);
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const [{ data: profile }, prefsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        fetch("/api/notifications/preferences"),
+      ]);
       if (profile) setForm({ username: profile.username ?? "", display_name: profile.display_name ?? "", bio: profile.bio ?? "" });
+      if (prefsRes.ok) { const { prefs } = await prefsRes.json(); if (prefs) setPrefs(prefs); }
       setLoading(false);
     }
     load();
@@ -43,6 +49,18 @@ export default function ProfilePage() {
     if (error) setMessage(error.message.includes("unique") ? "此用戶名已被使用" : error.message);
     else setMessage("✅ 儲存成功！");
     setSaving(false);
+  }
+
+  async function savePrefs(key: keyof typeof prefs, value: boolean) {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    setSavingPrefs(true);
+    await fetch("/api/notifications/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: value }),
+    });
+    setSavingPrefs(false);
   }
 
   async function changePassword() {
@@ -118,6 +136,35 @@ export default function ProfilePage() {
           <Save className="w-4 h-4" /> {saving ? "儲存中..." : "儲存變更"}
         </button>
       </form>
+
+      {/* Notification Preferences */}
+      <div className="glass rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <Mail className="w-4 h-4 text-brand-400" /> Email 通知設定
+          </h3>
+          {savingPrefs && <span className="text-xs text-gray-500">儲存中...</span>}
+        </div>
+        <p className="text-xs text-gray-500">關閉後將不再收到該類型的 Email，站內通知不受影響。</p>
+        {[
+          { key: "email_trade_offer" as const, label: "換卡邀請", desc: "有人向你發送換卡提案時" },
+          { key: "email_comment_reply" as const, label: "留言回覆", desc: "有人回覆你的文章或留言時" },
+          { key: "email_trade_match" as const, label: "配對成功", desc: "你的換卡需求與他人配對時" },
+        ].map(({ key, label, desc }) => (
+          <div key={key} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+            <div>
+              <p className="text-sm text-gray-300">{label}</p>
+              <p className="text-xs text-gray-500">{desc}</p>
+            </div>
+            <button
+              onClick={() => savePrefs(key, !prefs[key])}
+              className={`relative w-11 h-6 rounded-full transition-colors ${prefs[key] ? "bg-brand-600" : "bg-gray-700"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${prefs[key] ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </div>
+        ))}
+      </div>
 
       {/* Security */}
       <div className="glass rounded-2xl p-6 space-y-4">

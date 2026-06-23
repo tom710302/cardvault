@@ -27,6 +27,20 @@ export async function getUserEmail(admin: SupabaseClient, userId: string): Promi
   return data.user.email;
 }
 
+export async function checkEmailPref(
+  admin: SupabaseClient,
+  userId: string,
+  type: "trade_offer" | "comment_reply" | "trade_match"
+): Promise<boolean> {
+  const { data } = await admin
+    .from("notification_preferences")
+    .select(`email_${type}`)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return true;
+  return (data as any)[`email_${type}`] ?? true;
+}
+
 function wrapper(bodyHtml: string, ctaLabel: string, ctaHref: string) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1f2937;">

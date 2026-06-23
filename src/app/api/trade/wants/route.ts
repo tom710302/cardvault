@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail, getUserEmail, matchFoundEmail } from "@/lib/email";
+import { sendEmail, getUserEmail, matchFoundEmail, checkEmailPref } from "@/lib/email";
 import { notifyUser } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
@@ -41,8 +41,11 @@ export async function POST(request: NextRequest) {
         body: `${myName} 想要 ${card_name}，你們可以互換！`,
         link: "/trade/matches",
       });
-      const email = await getUserEmail(admin, uid);
-      if (email) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
+      const [email, canEmail] = await Promise.all([
+        getUserEmail(admin, uid),
+        checkEmailPref(admin, uid, "trade_match"),
+      ]);
+      if (email && canEmail) await sendEmail({ to: email, subject: `配對成功：${card_name}`, html: matchFoundEmail(myName, card_name) });
     })
   );
 
