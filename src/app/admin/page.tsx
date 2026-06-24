@@ -201,6 +201,15 @@ export default function AdminPage() {
     fetchStores();
   }
 
+  async function updatePlan(id: string, plan_type: string) {
+    await fetch("/api/admin/stores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, plan_type }),
+    });
+    fetchStores();
+  }
+
   async function deleteStore(id: string) {
     if (!await confirm({ title: "確定刪除此店舖？", message: "刪除後無法復原。" })) return;
     await supabase.from("stores").delete().eq("id", id);
@@ -715,7 +724,9 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-gray-200">{store.name}</span>
                         <span className="badge text-xs bg-gray-800 text-gray-400">{store.city}</span>
-                        {store.is_verified && <span className="badge text-xs text-green-400 bg-green-900/30">✓ 已驗證</span>}
+                        {store.plan_type === "pro" && <span className="badge text-xs text-yellow-400 bg-yellow-900/30">⭐ Pro</span>}
+                        {store.plan_type === "basic" && <span className="badge text-xs text-green-400 bg-green-900/30">✓ Basic</span>}
+                        {(!store.plan_type || store.plan_type === "free") && store.is_verified && <span className="badge text-xs text-green-400 bg-green-900/30">✓ 已驗證</span>}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> {store.address}
@@ -726,14 +737,19 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 items-center">
+                      <select
+                        value={store.plan_type ?? "free"}
+                        onChange={e => updatePlan(store.id, e.target.value)}
+                        className="text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      >
+                        <option value="free">免費</option>
+                        <option value="basic">Basic ✓</option>
+                        <option value="pro">Pro ⭐</option>
+                      </select>
                       <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + " " + store.address)}`, "_blank")}
                         className="text-xs text-brand-400 hover:text-brand-300 bg-brand-900/20 px-2 py-1 rounded transition-colors">
                         地圖
-                      </button>
-                      <button onClick={() => toggleVerify(store.id, store.is_verified)}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${store.is_verified ? "text-yellow-400 hover:text-yellow-300 bg-yellow-900/20" : "text-green-400 hover:text-green-300 bg-green-900/20"}`}>
-                        {store.is_verified ? "取消驗證" : "驗證"}
                       </button>
                       <button onClick={() => deleteStore(store.id)}
                         className="text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded transition-colors">

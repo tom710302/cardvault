@@ -18,7 +18,7 @@ interface Store {
   id: string; name: string; address: string; city: string;
   phone: string | null; website: string | null; hours: string | null;
   description: string | null; image_url: string | null;
-  games: string[]; is_verified: boolean; created_at: string;
+  games: string[]; is_verified: boolean; plan_type: string | null; created_at: string;
 }
 interface Event {
   id: string; title: string; game: string; event_type: string;
@@ -182,6 +182,40 @@ function SearchContent() {
       {/* ═══ STORES TAB ═══ */}
       {tab === "stores" && (
         <div className="space-y-6">
+          {/* Featured Pro Stores */}
+          {stores.filter(s => s.plan_type === "pro").length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-400 text-sm font-semibold">⭐ 精選店家</span>
+                <div className="flex-1 h-px bg-yellow-400/20" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {stores.filter(s => s.plan_type === "pro").map(store => (
+                  <Link key={store.id} href={`/stores/${store.id}`}
+                    className="glass rounded-2xl overflow-hidden card-hover group border border-yellow-500/20 block">
+                    <div className="h-40 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden">
+                      {store.image_url
+                        ? <Image src={store.image_url} alt={store.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                        : <div className="w-full h-full flex items-center justify-center"><MapPin className="w-10 h-10 text-gray-600" /></div>
+                      }
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-yellow-900/80 text-yellow-400 text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">
+                        ⭐ 精選店家
+                      </div>
+                      <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">{store.city}</div>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <h3 className="font-bold text-white text-lg group-hover:text-brand-300 transition-colors">{store.name}</h3>
+                      {store.description && <p className="text-gray-500 text-xs line-clamp-2">{store.description}</p>}
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" /> {store.address}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="glass rounded-xl p-4 text-center">
@@ -249,7 +283,17 @@ function SearchContent() {
                         ? <Image src={store.image_url} alt={store.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         : <div className="w-full h-full flex items-center justify-center"><MapPin className="w-10 h-10 text-gray-600" /></div>
                       }
-                      {store.is_verified && (
+                      {store.plan_type === "pro" && (
+                        <div className="absolute top-3 left-3 flex items-center gap-1 bg-yellow-900/80 text-yellow-400 text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">
+                          ⭐ 精選
+                        </div>
+                      )}
+                      {store.plan_type === "basic" && (
+                        <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-900/80 text-green-400 text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">
+                          <CheckCircle className="w-3 h-3" /> 已驗證
+                        </div>
+                      )}
+                      {(!store.plan_type || store.plan_type === "free") && store.is_verified && (
                         <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-900/80 text-green-400 text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">
                           <CheckCircle className="w-3 h-3" /> 已驗證
                         </div>
