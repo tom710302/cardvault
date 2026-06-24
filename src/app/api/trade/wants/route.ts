@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
   const { card_name, card_game, condition_min, note } = body;
   if (!card_name || !card_game) return NextResponse.json({ error: "請填寫卡牌名稱與遊戲" }, { status: 400 });
   const admin = createAdminClient();
+
+  // 免費用戶限制 10 筆
+  const { data: profileData } = await admin.from("profiles").select("is_premium").eq("id", user.id).single();
+  if (!profileData?.is_premium) {
+    const { count } = await admin.from("trade_wants").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_active", true);
+    if ((count ?? 0) >= 10) return NextResponse.json({ error: "免費方案最多 10 筆，升級 Premium 解鎖無限清單", premium_required: true }, { status: 403 });
+  }
+
   const { data, error } = await admin.from("trade_wants").insert({
     user_id: user.id, card_name, card_game, condition_min: condition_min || "LP", note: note || null,
   }).select().single();

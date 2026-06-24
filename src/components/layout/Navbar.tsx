@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search, User, Layers, LogOut, Shield, BookmarkPlus, MessageSquare } from "lucide-react";
+import { Bell, Search, User, Layers, LogOut, Shield, BookmarkPlus, MessageSquare, Crown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,7 @@ export function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false); // kept for tablet 768-1023px edge case
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<{ username: string; role: string } | null>(null);
+  const [profile, setProfile] = useState<{ username: string; role: string; is_premium: boolean } | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
@@ -78,7 +78,7 @@ export function Navbar() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       if (user) {
-        supabase.from("profiles").select("username, role").eq("id", user.id).single()
+        supabase.from("profiles").select("username, role, is_premium").eq("id", user.id).single()
           .then(({ data }) => setProfile(data));
         fetchNotifications();
         fetchUnreadMessages();
@@ -266,9 +266,18 @@ export function Navbar() {
               {dropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 glass rounded-xl py-1 shadow-xl z-50">
                   <div className="px-3 py-2 border-b border-white/10">
-                    <p className="text-sm font-medium text-white truncate">{profile?.username}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-white truncate">{profile?.username}</p>
+                      {profile?.is_premium && <Crown className="w-3.5 h-3.5 text-brand-400 shrink-0" />}
+                    </div>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
+                  {!profile?.is_premium && (
+                    <Link href="/upgrade" onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-brand-400 hover:bg-brand-900/20 transition-colors font-medium">
+                      <Crown className="w-4 h-4" /> 升級 Premium
+                    </Link>
+                  )}
                   {profile?.role === "admin" && (
                     <Link href="/admin" onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5 transition-colors">
