@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { User, Save, ArrowLeft, Mail } from "lucide-react";
+import { Save, ArrowLeft, Mail, Camera } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
@@ -10,11 +11,14 @@ import { useToast } from "@/components/ui/Toast";
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [form, setForm] = useState({ username: "", display_name: "", bio: "" });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [prefs, setPrefs] = useState({ email_trade_offer: true, email_comment_reply: true, email_trade_match: true });
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
   const toast = useToast();
@@ -28,12 +32,39 @@ export default function ProfilePage() {
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         fetch("/api/notifications/preferences"),
       ]);
-      if (profile) setForm({ username: profile.username ?? "", display_name: profile.display_name ?? "", bio: profile.bio ?? "" });
+      if (profile) {
+        setForm({ username: profile.username ?? "", display_name: profile.display_name ?? "", bio: profile.bio ?? "" });
+        setAvatarUrl(profile.avatar_url ?? null);
+      }
       if (prefsRes.ok) { const { prefs } = await prefsRes.json(); if (prefs) setPrefs(prefs); }
       setLoading(false);
     }
     load();
   }, []);
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("圖片大小不能超過 2MB"); return; }
+
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) { toast.error("上傳失敗：" + uploadError.message); setUploadingAvatar(false); return; }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const urlWithCache = `${publicUrl}?t=${Date.now()}`;
+
+    await supabase.from("profiles").update({ avatar_url: urlWithCache }).eq("id", user.id);
+    setAvatarUrl(urlWithCache);
+    toast.success("頭像已更新！");
+    setUploadingAvatar(false);
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -65,7 +96,7 @@ export default function ProfilePage() {
 
   async function changePassword() {
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/auth/reset-password`,
     });
     if (!error) toast.success("密碼重設信已寄出，請查看信箱！");
   }
@@ -89,13 +120,29 @@ export default function ProfilePage() {
 
       {/* Avatar */}
       <div className="glass rounded-2xl p-6 flex items-center gap-4">
-        <div className="w-20 h-20 rounded-2xl bg-brand-700 flex items-center justify-center text-white text-3xl font-bold">
-          {form.username?.[0]?.toUpperCase() ?? "?"}
-        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingAvatar}
+          className="relative w-20 h-20 rounded-2xl overflow-hidden group shrink-0 focus:outline-none"
+        >
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt="avatar" fill className="object-cover" />
+          ) : (
+            <div className="w-full h-full bg-brand-700 flex items-center justify-center text-white text-3xl font-bold">
+              {form.username?.[0]?.toUpperCase() ?? "?"}
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            {uploadingAvatar
+              ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Camera className="w-5 h-5 text-white" />}
+          </div>
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
         <div>
           <p className="font-medium text-white">{form.display_name || form.username}</p>
           <p className="text-sm text-gray-500">{user?.email}</p>
-          <p className="text-xs text-gray-600 mt-1">目前頭像為字母縮寫，未來將支援上傳圖片</p>
+          <p className="text-xs text-gray-500 mt-1">點擊頭像上傳圖片（最大 2MB）</p>
         </div>
       </div>
 
